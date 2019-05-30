@@ -21,7 +21,7 @@ class GitModule extends TangentModule {
       if (dataText is String) {
         var data = jsonDecode(dataText) as List;
         print("adding");
-        events.addStream(Stream.fromIterable(data));
+        for (var d in data) events.add(d);
       }
     }, onDone: () {
       reconnect();
@@ -65,7 +65,7 @@ class GitModule extends TangentModule {
 
           await ch.send(
             embed: EmbedBuilder()
-              ..color = DiscordColor.fromInt(0x23bf20)
+              ..color = DiscordColor.fromInt(0x0086ce)
               ..author = (EmbedAuthorBuilder()
                 ..name = "[${ev["repository"]["name"]}:$branch] +${commits.length} New commit${commits.length > 1 ? "s" : ""}"
                 ..url = ev["repository"]["html_url"]
