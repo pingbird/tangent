@@ -106,6 +106,8 @@ void main(List<String> args) async {
         await m.init();
         print("Initialized ${m.runtimeType}");
       }
+
+      if (nyxx?.ready == true) modules.forEach((m) => m.onReady());
     }
 
     LineSplitter().bind(Utf8Decoder().bind(stdin)).listen((line) async {
