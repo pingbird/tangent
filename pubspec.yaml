@@ -1,0 +1,20 @@
+name: tangent
+description: A sample command-line application.
+# version: 1.0.0
+# homepage: https://www.example.com
+# author: pix <andre.lipke@gmail.com>
+
+environment:
+  sdk: '>=2.2.0 <3.0.0'
+
+dependencies:
+  tuple: any
+  nyxx:
+    path: '../nyxx'
+  msgpack2: ^2.0.0+1
+  vm_service_lib: any
+#  path: ^1.4.1
+
+dev_dependencies:
+  pedantic: ^1.0.0
+  test: ^1.0.0
