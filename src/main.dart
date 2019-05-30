@@ -31,6 +31,7 @@ class TangentMsg {
 }
 
 abstract class TangentModule {
+  bool loaded = true;
   Future init() {}
   void onMessage(TangentMsg msg) {}
   void onReady() {}
@@ -84,7 +85,10 @@ void main(List<String> args) async {
     modules = Set();
 
     Future unloadModules() async {
-      for (var m in modules) await m.unload();
+      for (var m in modules) {
+        await m.unload();
+        m.loaded = false;
+      }
       modules.clear();
     }
 
