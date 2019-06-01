@@ -110,7 +110,7 @@ class _LineSplitterSink extends StringConversionSinkBase {
       return;
     }
 
-    if ((end - start) + _carry.length > lengthLimit) {
+    if ((end - start) + (_carry?.length ?? 0) > lengthLimit) {
       throw Exception("Line length limit reached");
     }
 
