@@ -34,6 +34,8 @@ abstract class TangentModule {
   bool loaded = true;
   Future init() {}
   void onMessage(TangentMsg msg) {}
+  void onMessageUpdate(TangentMsg oldMsg, TangentMsg newMsg) {}
+  void onMessageDelete(TangentMsg msg) {}
   void onReady() {}
   Future unload() {}
 }
@@ -142,9 +144,9 @@ void main(List<String> args) async {
       print("Ready!");
     });
 
-    nyxx.onMessageReceived.listen((ev) {
-      modules.forEach((m) => m.onMessage(TangentMsg(ev.message)));
-    });
+    nyxx.onMessageReceived.listen((ev) => modules.forEach((m) => m.onMessage(TangentMsg(ev.message))));
+    nyxx.onMessageUpdate.listen((ev) => modules.forEach((m) => m.onMessageUpdate(TangentMsg(ev.oldMessage), TangentMsg(ev.newMessage))));
+    nyxx.onMessageDelete.listen((ev) => modules.forEach((m) => m.onMessageDelete(TangentMsg(ev.message))));
   }, onError: (e, bt) {
     stderr.writeln(e);
     stderr.writeln(bt);

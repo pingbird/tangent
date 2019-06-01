@@ -67,7 +67,7 @@ class GitModule extends TangentModule {
             embed: EmbedBuilder()
               ..color = DiscordColor.fromInt(0x0086ce)
               ..author = (EmbedAuthorBuilder()
-                ..name = "[${ev["repository"]["name"]}:$branch] +${commits.length} New commit${commits.length > 1 ? "s" : ""}"
+                ..name = "${ev["repository"]["name"]}:$branch +${commits.length} New commit${commits.length > 1 ? "s" : ""}"
                 ..url = ev["repository"]["html_url"]
               )
               ..description = messages.join("\n\n")
