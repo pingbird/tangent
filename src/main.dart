@@ -145,7 +145,10 @@ void main(List<String> args) async {
     });
 
     nyxx.onMessageReceived.listen((ev) => modules.forEach((m) => m.onMessage(TangentMsg(ev.message))));
-    nyxx.onMessageUpdate.listen((ev) => modules.forEach((m) => m.onMessageUpdate(TangentMsg(ev.oldMessage), TangentMsg(ev.newMessage))));
+    nyxx.onMessageUpdate.listen((ev) {
+      if (ev.newMessage.author == null) return; // nyxx bug >.<
+      modules.forEach((m) => m.onMessageUpdate(TangentMsg(ev.oldMessage), TangentMsg(ev.newMessage)));
+    });
     nyxx.onMessageDelete.listen((ev) => modules.forEach((m) => m.onMessageDelete(TangentMsg(ev.message))));
   }, onError: (e, bt) {
     stderr.writeln(e);

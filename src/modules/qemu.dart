@@ -368,7 +368,7 @@ class QEmuModule extends TangentModule {
     if (!await basicRunProgram(
       args.res,
       "/usr/bin/python3",
-      ["./tangent.lua"]..addAll(prog.item3),
+      ["./tangent.py"]..addAll(prog.item3),
     ))
       return args.res.close();
 
