@@ -22,39 +22,47 @@ main() async {
           if (cmd[0] == "start") {
             int id = cmd[1];
             p[id] = await Process.start(cmd[2], (cmd[3] as List)?.cast<String>(), workingDirectory: cmd[4], environment: (cmd[5] as Map)?.cast<String, String>());
+            bool drain = cmd[6] == true;
             send(["started", id, p[id].pid]);
 
             bool stdoutDone = false;
             bool stderrDone = false;
             int exitCode;
 
-            p[id].stdout.listen((data) {
-              stdout.add(data);
-              send(["stdout", id, Base64Codec().encode(data)]);
-            }, onDone: () {
+            if (drain) {
               stdoutDone = true;
-              if (stderrDone && exitCode != null) {
-                send(["exit", id, exitCode]);
-                p.remove(id);
-              }
-            }, onError: (e) {
-              stderr.writeln(e);
-              cleanup();
-            });
-
-            p[id].stderr.listen((data) {
-              stderr.add(data);
-              send(["stderr", id, Base64Codec().encode(data)]);
-            }, onDone: () {
               stderrDone = true;
-              if (stdoutDone && exitCode != null) {
-                send(["exit", id, exitCode]);
-                p.remove(id);
-              }
-            }, onError: (e) {
-              stderr.writeln(e);
-              cleanup();
-            });
+              p[id].stdout.drain();
+              p[id].stderr.drain();
+            } else {
+              p[id].stdout.listen((data) {
+                stdout.add(data);
+                send(["stdout", id, Base64Codec().encode(data)]);
+              }, onDone: () {
+                stdoutDone = true;
+                if (stderrDone && exitCode != null) {
+                  send(["exit", id, exitCode]);
+                  p.remove(id);
+                }
+              }, onError: (e) {
+                stderr.writeln(e);
+                cleanup();
+              });
+
+              p[id].stderr.listen((data) {
+                stderr.add(data);
+                send(["stderr", id, Base64Codec().encode(data)]);
+              }, onDone: () {
+                stderrDone = true;
+                if (stdoutDone && exitCode != null) {
+                  send(["exit", id, exitCode]);
+                  p.remove(id);
+                }
+              }, onError: (e) {
+                stderr.writeln(e);
+                cleanup();
+              });
+            }
 
             p[id].exitCode.then((e) {
               print("got exit code");

@@ -23,7 +23,7 @@ class TangentMsg {
     }
 
     if (m.channel is ds.TextChannel) {
-      return m.channel.send(content: "${m.author.mention} $text");
+      return m.channel.send(content: text);
     } else {
       return m.channel.send(content: text);
     }

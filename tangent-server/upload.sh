@@ -1,0 +1,1 @@
+scp main.dart root@192.168.69.180:/usr/local/bin/tangent-server

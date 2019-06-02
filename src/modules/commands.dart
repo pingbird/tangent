@@ -200,15 +200,22 @@ class CommandsModule extends TangentModule {
 
     if (!userTrusted && msg.m.channel.id.id.toString() != botChannel) return;
 
-    const prefix = "α";
+    var prefixes = [
+      ".", "α", "<@!${nyxx.self.id}>", "<@${nyxx.self.id}>",
+    ];
+
     var text = msg.m.content.trim();
-    if (text.startsWith(prefix)) {
-      text = text.substring(prefix.length);
-    } else if (text.startsWith("<@!${nyxx.self.id}>")) {
-      text = text.substring("<@!${nyxx.self.id}>".length).trimLeft();
-    } else if (text.startsWith("<@${nyxx.self.id}>")) {
-      text = text.substring("<@${nyxx.self.id}>".length).trimLeft();
-    } else return;
+
+    bool match = false;
+    for (var prefix in prefixes) {
+      if (text.startsWith(prefix)) {
+        text = text.substring(prefix.length).trimLeft();
+        match = true;
+        break;
+      }
+    }
+
+    if (!match) return;
     var args = text.split(RegExp("\\s+"));
     if (args.isEmpty) return;
     var idx = text.indexOf(RegExp("\\S"), args.first.length);

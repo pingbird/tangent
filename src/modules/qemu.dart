@@ -57,11 +57,11 @@ class QEmuModule extends TangentModule {
   Map<int, Completer<QProc>> starting;
   Map<int, QProc> procs;
 
-  Future<QProc> startProc(String proc, List<String> args, {String workingDirectory, Map<String, String> environment, Future killOn}) async {
+  Future<QProc> startProc(String proc, List<String> args, {String workingDirectory, Map<String, String> environment, Future killOn, bool drain = false}) async {
     if (serviceSocket == null) return null;
     var n = Random().nextInt(0x1000);
     while (starting.containsKey(n)) n++;
-    serviceSocket.writeln(jsonEncode(["start", n, proc, args, workingDirectory, environment]));
+    serviceSocket.writeln(jsonEncode(["start", n, proc, args, workingDirectory, environment, drain]));
     var c = Completer<QProc>();
     starting[n] = c;
     var p = await c.future;
@@ -75,11 +75,14 @@ class QEmuModule extends TangentModule {
   int lastConnectAttempt;
   int lastConnect;
   int pings;
+  String connectionStateDbg;
 
   void procService() async {
     int throttle = 0;
     while (loaded) {
+      connectionStateDbg = "loop";
       if (lastConnect != null && DateTime.now().millisecondsSinceEpoch - lastConnect > 10000) {
+        connectionStateDbg = "rebooting";
         print("[qemu] Attempting to reboot tangent");
         var r = await runBasic("sudo virsh reboot tangent");
         if (r.exitCode != 0) {
@@ -97,9 +100,11 @@ class QEmuModule extends TangentModule {
       pings = 0;
       lastConnectAttempt = DateTime.now().millisecondsSinceEpoch;
       try {
+        connectionStateDbg = "connect";
         s = await Socket.connect("192.168.69.180", 5555, timeout: Duration(milliseconds: 500));
         print("[qemu] Connected to tangent-server");
         throttle = 0;
+        connectionStateDbg = "connected";
 
         p = Timer.periodic(Duration(seconds: 1), (_) {
           try {
@@ -133,6 +138,7 @@ class QEmuModule extends TangentModule {
           } else if (cmd[0] == "closed") {
             procs[cmd[1]].closedCtrl.complete();
           } else if (cmd[0] == "exit") {
+            connectionStateDbg = "exit";
             var p = procs[cmd[1]];
             scheduleMicrotask(() async {
               unawaited(p.drain());
@@ -142,8 +148,11 @@ class QEmuModule extends TangentModule {
               procs.remove(cmd[1]);
               p.exitCodeCtrl.complete(cmd[2]);
             });
+            connectionStateDbg = "loop";
           } else if (cmd[0] == "err") {
+            connectionStateDbg = "err";
             await Future.error(cmd[1], StackTrace.fromString(cmd[2]));
+            connectionStateDbg = "loop";
           } else if (cmd[0] == "pong") {
             pings = 0;
           }
@@ -165,14 +174,20 @@ class QEmuModule extends TangentModule {
 
         for (var p in procs.values) {
           p.exitCodeCtrl.complete(255);
+          connectionStateDbg = "closing from error";
+          unawaited(p.drain());
           await p.stdoutCtrl.close();
           await p.stderrCtrl.close();
         }
       }
+
+      connectionStateDbg = "throttle";
       p?.cancel();
       await Future.delayed(Duration(milliseconds: throttle));
       throttle = min(5000, throttle + 100);
     }
+
+    connectionStateDbg = "unloaded";
   }
 
   @override init() async {
@@ -181,6 +196,11 @@ class QEmuModule extends TangentModule {
     print(r.stdout + r.stderr);
 
     procService();
+  }
+
+  @Command(trusted: true) qdebug(CommandArgs args) async {
+    args.res.writeln("[${connectionStateDbg}]");
+    return args.res.close();
   }
 
   @Command(trusted: true) qclean(CommandArgs args) async {
@@ -212,6 +232,54 @@ class QEmuModule extends TangentModule {
     return args.res.close();
   }
 
+  @Command(trusted: true) upload(CommandArgs args) async {
+    var ap = ArgParse(args.argText, parseFlags: false);
+    String target;
+
+    if (ap.list.isEmpty) {
+      target = "/home/kek/";
+    } else {
+      if (ap.list.length > 1) {
+        args.res.writeln("Error: one argument expected (got ${ap.list.length}");
+        return args.res.close();
+      }
+      target = ap.list.first;
+    }
+
+    bool toDir = target.endsWith("/");
+
+    var attach = args.msg.m.attachments?.values;
+
+    if (attach == null || attach.isEmpty) {
+      args.res.writeln("Error: attachment expected");
+      return args.res.close();
+    } else if (attach.length > 1) {
+      args.res.writeln("Error: one attachment expected");
+      return args.res.close();
+    }
+
+    var a = attach.first;
+
+    if (toDir) {
+      target += a.filename;
+    }
+
+    var p = await startProc("/usr/bin/tee", [], killOn: args.onCancel);
+    if (p == null) {
+      args.res.writeln("Failed to start /usr/bin/tee");
+      return false;
+    }
+
+    StreamGroup.merge([p.stderr, p.stdout]).listen(args.res.add);
+
+    var req = await HttpClient().getUrl(Uri.parse(a.url));
+    req.headers.set("User-Agent", "Tangent bot");
+    var resp = await req.close();
+
+    args.res.set("Uploading...");
+    return args.res.close();
+  }
+
   @Command(trusted: true) sh(CommandArgs args) async {
     await basicRunProgram(args.res, "/bin/sh", ["-c", args.argText]);
     return args.res.close();
@@ -233,7 +301,7 @@ class QEmuModule extends TangentModule {
   Tuple3<List<String>, String, List<String>> extractArgs(String code) {
     var cargs = <String>[];
     var pargs = <String>[];
-    var m = RegExp("(.+?)?\w*```(.+)```(.+?)?").firstMatch(code);
+    var m = RegExp(r"^([\S\s]+?)?```\w*([\S\s]+)```([\S\s]+)?$", multiLine: true).firstMatch(code);
     if (m != null) {
       cargs = ArgParse(m.group(1) ?? "", parseFlags: false).list;
       code = m.group(2);
@@ -258,7 +326,7 @@ class QEmuModule extends TangentModule {
     var ec = await p.exitCode;
     if (ec != 0) {
       ares.writeln("```$res```");
-      ares.writeln("gcc finished with exit code $ec");
+      ares.writeln("$compiler finished with exit code $ec");
       return false;
     }
 
@@ -297,7 +365,7 @@ class QEmuModule extends TangentModule {
         args.res,
         prog.item2,
         "/usr/bin/gcc",
-        ["-o", "tangent", "tangent.S"]..addAll(prog.item1)
+        ["-o", "tangent", "-masm=intel", "tangent.S"]..addAll(prog.item1)
     )) return args.res.close();
 
     if (!await basicRunProgram(args.res, "./tangent", prog.item3))
@@ -315,7 +383,7 @@ class QEmuModule extends TangentModule {
         args.res,
         prog.item2,
         "/usr/bin/arm-linux-gnueabi-gcc",
-        ["-o", "tangent", "tangent.S"]..addAll(prog.item1)
+        ["-o", "tangent", "-masm=intel", "tangent.S"]..addAll(prog.item1)
     )) return args.res.close();
 
     if (!await basicRunProgram(args.res, "./tangent", prog.item3))
@@ -344,14 +412,50 @@ class QEmuModule extends TangentModule {
 
   @Command(trusted: true, alias: ["c++", "cpp", "g++"]) cpp(CommandArgs args) async {
     var prog = extractArgs(args.argText);
-    if (!await basicWrite(args.res, "./tangent.c", prog.item2))
+    if (!await basicWrite(args.res, "./tangent.cpp", prog.item2))
       return args.res.close();
 
     if (!await basicCompile(
         args.res,
         prog.item2,
         "/usr/bin/g++",
+        ["-o", "tangent", "tangent.cpp"]..addAll(prog.item1)
+    )) return args.res.close();
+
+    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+      return args.res.close();
+
+    return args.res.close();
+  }
+
+  @Command(trusted: true, alias: ["c-arm", "gcc-arm"]) gcc_arm(CommandArgs args) async {
+    var prog = extractArgs(args.argText);
+    if (!await basicWrite(args.res, "./tangent.c", prog.item2))
+      return args.res.close();
+
+    if (!await basicCompile(
+        args.res,
+        prog.item2,
+        "/usr/bin/arm-linux-gnueabi-gcc",
         ["-o", "tangent", "tangent.c"]..addAll(prog.item1)
+    )) return args.res.close();
+
+    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+      return args.res.close();
+
+    return args.res.close();
+  }
+
+  @Command(trusted: true, alias: ["c++-arm", "cpp-arm", "g++-arm"]) cpp_arm(CommandArgs args) async {
+    var prog = extractArgs(args.argText);
+    if (!await basicWrite(args.res, "./tangent.cpp", prog.item2))
+      return args.res.close();
+
+    if (!await basicCompile(
+        args.res,
+        prog.item2,
+        "/usr/bin/arm-linux-gnueabi-g++",
+        ["-o", "tangent", "tangent.cpp"]..addAll(prog.item1)
     )) return args.res.close();
 
     if (!await basicRunProgram(args.res, "./tangent", prog.item3))
