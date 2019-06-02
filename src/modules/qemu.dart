@@ -250,7 +250,43 @@ class QEmuModule extends TangentModule {
     return true;
   }
 
-  @Command(trusted: true) gcc(CommandArgs args) async {
+  @Command(trusted: true, alias: ["asm", "x86"]) x86(CommandArgs args) async {
+    var prog = extractArgs(args.argText);
+    if (!await basicWrite(args.res, "./tangent.S", prog.item2))
+      return args.res.close();
+
+    if (!await basicCompile(
+        args.res,
+        prog.item2,
+        "/usr/bin/gcc",
+        ["-o", "tangent", "tangent.S"]..addAll(prog.item1)
+    )) return args.res.close();
+
+    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+      return args.res.close();
+
+    return args.res.close();
+  }
+
+  @Command(trusted: true) arm(CommandArgs args) async {
+    var prog = extractArgs(args.argText);
+    if (!await basicWrite(args.res, "./tangent.S", prog.item2))
+      return args.res.close();
+
+    if (!await basicCompile(
+        args.res,
+        prog.item2,
+        "/usr/bin/arm-linux-gnueabi-gcc",
+        ["-o", "tangent", "tangent.S"]..addAll(prog.item1)
+    )) return args.res.close();
+
+    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+      return args.res.close();
+
+    return args.res.close();
+  }
+
+  @Command(trusted: true, alias: ["c", "gcc"]) gcc(CommandArgs args) async {
     var prog = extractArgs(args.argText);
     if (!await basicWrite(args.res, "./tangent.c", prog.item2))
       return args.res.close();
@@ -268,7 +304,7 @@ class QEmuModule extends TangentModule {
     return args.res.close();
   }
 
-  @Command(trusted: true, alias: ["g++"]) gxx(CommandArgs args) async {
+  @Command(trusted: true, alias: ["c++", "cpp", "g++"]) cpp(CommandArgs args) async {
     var prog = extractArgs(args.argText);
     if (!await basicWrite(args.res, "./tangent.c", prog.item2))
       return args.res.close();
