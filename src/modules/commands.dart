@@ -17,7 +17,7 @@ class CommandEntry {
 }
 
 class Command {
-  const Command({this.alias, this.trusted = false, this.admin});
+  const Command({this.alias, this.trusted = false, this.admin = false});
   final List<String> alias;
   final bool trusted;
   final bool admin;
