@@ -22,8 +22,8 @@ abstract class BasicStringSink implements StreamSink<List<int>>, StringSink {
     throw error;
   }
 
-  Future addStream(Stream<List<int>> stream) {
-    stream.listen(add);
+  Future addStream(Stream<List<int>> stream) async {
+    await stream.listen(add).asFuture();
     return null;
   }
 }

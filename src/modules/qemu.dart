@@ -49,6 +49,29 @@ class QProc extends BasicStringSink {
   get done => exitCode;
 }
 
+class QFile extends BasicStringSink {
+  QFile(this.module, this.id);
+  QEmuModule module;
+  int id;
+
+  var closed = Completer<Null>();
+
+  void add(List<int> event) {
+    if (closed.isCompleted) return;
+    module.serviceSocket.writeln(jsonEncode(["fwrite", id, Base64Codec().encode(event)]));
+  }
+
+  Future close() async {
+    if (closed.isCompleted) return null;
+    closed.complete();
+    if (module.serviceSocket == null) return null;
+    module.serviceSocket.writeln(jsonEncode(["fclose", id]));
+    return null;
+  }
+
+  Future get done => closed.future;
+}
+
 class QEmuModule extends TangentModule {
   Future<ProcessResult> runBasic(String command) => Process.run("/bin/bash", ["-c", command], stdoutEncoding: Utf8Codec(), stderrEncoding: Utf8Codec());
 
@@ -56,6 +79,7 @@ class QEmuModule extends TangentModule {
   var serviceConnect = Completer<Null>();
   Map<int, Completer<QProc>> starting;
   Map<int, QProc> procs;
+  Map<int, QFile> files;
 
   Future<QProc> startProc(String proc, List<String> args, {String workingDirectory, Map<String, String> environment, Future killOn, bool drain = false}) async {
     if (serviceSocket == null) return null;
@@ -70,6 +94,16 @@ class QEmuModule extends TangentModule {
     unawaited(killOn?.then((_) => p.kill()));
 
     return p;
+  }
+
+  Future<QFile> openFile(String path, {Future killOn}) async {
+    if (serviceSocket == null) return null;
+
+    var n = Random().nextInt(0x1000);
+    while (files.containsKey(n)) n++;
+    serviceSocket.writeln(jsonEncode(["fopen", n, path]));
+    files[n] = QFile(this, n);
+    return files[n];
   }
 
   int lastConnectAttempt;
@@ -95,6 +129,7 @@ class QEmuModule extends TangentModule {
       serviceSocket = null;
       procs = {};
       starting = {};
+      files = {};
       Socket s;
       Timer p;
       pings = 0;
@@ -173,11 +208,11 @@ class QEmuModule extends TangentModule {
         }
 
         for (var p in procs.values) {
-          p.exitCodeCtrl.complete(255);
           connectionStateDbg = "closing from error";
           unawaited(p.drain());
           await p.stdoutCtrl.close();
           await p.stderrCtrl.close();
+          p.exitCodeCtrl.complete(255);
         }
       }
 
@@ -208,6 +243,27 @@ class QEmuModule extends TangentModule {
     var r = await runBasic("sudo virsh snapshot-revert tangent clean");
     args.res.writeln(r.stdout + r.stderr);
     args.res.writeln("Done!");
+    return args.res.close();
+  }
+
+  @Command(trusted: true) qstart(CommandArgs args) async {
+    args.res.writeln("Starting...");
+    var r = await runBasic("sudo virsh start tangent");
+    args.res.writeln(((r.stdout as String) + r.stderr).trim());
+    if (r.exitCode != 0) {
+      args.res.writeln("virsh finished with exit code ${r.exitCode}");
+      return args.res.close();
+    }
+
+    if (serviceSocket != null) {
+      await serviceSocket?.close();
+      serviceSocket = null;
+    }
+
+    args.res.writeln("Started, waiting for server to come online...");
+    await serviceConnect.future;
+    args.res.writeln("Done!");
+
     return args.res.close();
   }
 
@@ -264,19 +320,28 @@ class QEmuModule extends TangentModule {
       target += a.filename;
     }
 
-    var p = await startProc("/usr/bin/tee", [], killOn: args.onCancel);
-    if (p == null) {
-      args.res.writeln("Failed to start /usr/bin/tee");
+    var file = await openFile(target, killOn: args.onCancel);
+    if (file == null) {
+      args.res.writeln("Failed to open $target");
       return false;
     }
 
-    StreamGroup.merge([p.stderr, p.stdout]).listen(args.res.add);
+    await Future.delayed(Duration(seconds: 1));
+
+    args.res.writeln("Downloading from discord...");
 
     var req = await HttpClient().getUrl(Uri.parse(a.url));
     req.headers.set("User-Agent", "Tangent bot");
+
     var resp = await req.close();
 
-    args.res.set("Uploading...");
+    args.res.writeln("Uploading to vm...");
+
+    await file.addStream(resp);
+    await file.close();
+
+    args.res.writeln("Done!");
+    args.res.writeln("wrote ${a.size} bytes to $target");
     return args.res.close();
   }
 
@@ -286,7 +351,6 @@ class QEmuModule extends TangentModule {
   }
 
   Future<bool> basicWrite(CommandRes ares, String file, String text) async {
-    print("writing $file '$text'");
     var p = await startProc("tee", [file], killOn: ares.cancelled.future);
     if (p == null) {
       ares.writeln("Failed to write file");

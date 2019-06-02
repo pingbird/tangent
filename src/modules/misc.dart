@@ -13,7 +13,7 @@ class MiscModule extends TangentModule {
   @Command(admin: true) purge(CommandArgs args) async {
     var count = args.expectInt();
     args.expectNone();
-    var chan = args.msg.textChannel;
+    var chan = args.msg.channel;
 
     ds.Snowflake earliest = args.msg.m.id;
     while (count > 0) {

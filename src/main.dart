@@ -15,7 +15,6 @@ class TangentMsg {
   TangentMsg(this.m);
   ds.Message m;
   ds.MessageChannel get channel => m.channel;
-  ds.TextChannel get textChannel => m.channel as ds.TextChannel;
   Future<ds.Message> reply(dynamic value) {
     var text = "$value";
     if (text.length > 1900) {
