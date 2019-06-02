@@ -241,7 +241,7 @@ class QEmuModule extends TangentModule {
       pre = null;
       ares.add(data);
     });
-    
+
     var ex = await p.exitCode;
     if (ex != 0 || pre != null) {
       if (pre != null) ares.set(pre);
