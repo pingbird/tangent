@@ -72,25 +72,55 @@ class QEmuModule extends TangentModule {
     return p;
   }
 
+  int lastConnectAttempt;
+  int lastConnect;
+  int pings;
+
   void procService() async {
-    int lastConnect;
     int throttle = 0;
     while (loaded) {
+      if (lastConnect != null && DateTime.now().millisecondsSinceEpoch - lastConnect > 10000) {
+        print("[qemu] Attempting to reboot tangent");
+        var r = await runBasic("sudo virsh reboot tangent");
+        if (r.exitCode != 0) {
+          stderr.writeln("[eqmu] Failed to reboot tangent!");
+          await Future.delayed(Duration(seconds: 10));
+        }
+        lastConnect = DateTime.now().millisecondsSinceEpoch;
+      }
+
       serviceSocket = null;
       procs = {};
       starting = {};
       Socket s;
-      lastConnect = DateTime.now().millisecondsSinceEpoch;
+      Timer p;
+      pings = 0;
+      lastConnectAttempt = DateTime.now().millisecondsSinceEpoch;
       try {
         s = await Socket.connect("192.168.69.180", 5555, timeout: Duration(milliseconds: 500));
         print("[qemu] Connected to tangent-server");
         throttle = 0;
+
+        p = Timer.periodic(Duration(seconds: 1), (_) {
+          try {
+            if (pings == 0) {
+              s.writeln(jsonEncode(["ping"]));
+            }
+
+            if (++pings >= 5) {
+              print("[qemu] Ping timeout, closing");
+              s.close();
+              p?.cancel();
+            }
+          } catch (e) {
+            p?.cancel();
+          }
+        });
+
         serviceSocket = s;
         serviceConnect.complete();
         serviceConnect = Completer<Null>();
-        await for (var line in s.transform(Utf8Decoder()).transform(
-            LimitedLineSplitter(0x10000))) {
-          print(line);
+        await for (var line in s.transform(Utf8Decoder()).transform(LimitedLineSplitter(0x10000))) {
           var cmd = jsonDecode(line);
           if (cmd[0] == "started") {
             var p = QProc(this, cmd[1], cmd[2]);
@@ -114,12 +144,19 @@ class QEmuModule extends TangentModule {
             });
           } else if (cmd[0] == "err") {
             await Future.error(cmd[1], StackTrace.fromString(cmd[2]));
+          } else if (cmd[0] == "pong") {
+            pings = 0;
           }
         }
+
+        lastConnect = DateTime.now().millisecondsSinceEpoch;
       } on SocketException catch (e) {
         //
       } catch (e, bt) {
         print("[qemu] Error! $e\n$bt");
+
+        if (s != null) lastConnect = DateTime.now().millisecondsSinceEpoch;
+
         serviceSocket = null;
         await s?.close();
         for (var st in starting.values) {
@@ -132,6 +169,7 @@ class QEmuModule extends TangentModule {
           await p.stderrCtrl.close();
         }
       }
+      p?.cancel();
       await Future.delayed(Duration(milliseconds: throttle));
       throttle = min(5000, throttle + 100);
     }
