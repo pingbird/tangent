@@ -175,3 +175,74 @@ class _LineSplitterEventSink extends _LineSplitterSink
     _eventSink.addError(o, stackTrace);
   }
 }
+
+class ArgParse {
+  ArgParse(this.raw, {bool parseFlags = true}) {
+    Map<String, String> escapes = {
+      "a": "\a",
+      "b": "\b",
+      "f": "\f",
+      "n": "\n",
+      "r": "\r",
+      "t": "\t",
+      "v": "\v",
+    };
+
+    String peek([int num = 1]) {
+      if (num > raw.length) return "";
+      return raw.substring(0, num);
+    }
+
+    String pop([int num = 1]) {
+      var out = peek(num);
+      raw = raw.substring(num);
+      return out;
+    }
+
+    String readString() {
+      while (peek() == " " || peek() == "\n") pop();
+      var str = "";
+      if (peek() == "\"") {
+        pop();
+        while (peek() != "\"" && raw.length > 0) {
+          if (peek() == "\\") {
+            pop();
+            var idx = pop();
+            var escape = escapes[idx];
+            str += escape == null ? idx : escape;
+          } else {
+            str += pop();
+          }
+        }
+        if (raw.length > 0) pop();
+      } else {
+        while (peek() != " " && peek() != "\n" && raw.length > 0) {
+          str += pop();
+        }
+      }
+      return str;
+    }
+
+    while (true) {
+      while (peek() == " " || peek() == "\n") pop();
+      if (raw.length == 0) break;
+      if (parseFlags && peek() == "-") { // flag
+        pop();
+        var key = readString();
+        while (peek() == " " || peek() == "\n") pop();
+        var value = "true";
+        if (peek() == "=") {
+          pop();
+          value = readString();
+        }
+        map[key] = value;
+      } else {
+        list.add(readString());
+      }
+    }
+  }
+
+  Map<String, String> map = new Map<String, String>();
+  List<String> list = new List<String>();
+  String raw = "";
+}

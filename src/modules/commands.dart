@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import '../main.dart';
 import '../common.dart';
@@ -28,16 +29,17 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
   _OnMessageCreate onCreate;
   CommandRes(this.invokeMsg, this.onCreate);
 
-  CommandRes replace() {
+  Future<CommandRes> replace() async {
     cancel();
+    if (flushing) await lastFlush?.future;
     return CommandRes(invokeMsg, onCreate)..message = message;
   }
 
   var cancelled = Completer<Null>();
+  Completer<Null> lastFlush = Completer();
 
   ds.Message message;
   String messageText = "";
-  Timer msgQueue;
 
   void cancel() {
     if (cancelled.isCompleted) return;
@@ -46,51 +48,67 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
 
   bool flushing = false;
   bool dirty = false;
+  bool deleted = false;
 
-  flush() async {
+  int lastMessage;
+  int throttle = 100;
+
+  Future flush() async {
+    if (cancelled.isCompleted) return;
+
     if (flushing) {
       dirty = true;
       return;
     }
 
-    msgQueue?.cancel();
-    msgQueue = null;
+    flushing = true;
+
+    var time = DateTime.now().millisecondsSinceEpoch;
+
+    if (throttle != 0) {
+      if (lastMessage != null) throttle = max(0, throttle - (time - lastMessage));
+      if (throttle != 0) await Future.delayed(Duration(milliseconds: throttle));
+    }
 
     if (messageText.length > 2000) {
       messageText = messageText.substring(messageText.length - 2000, messageText.length);
     }
 
-    if (messageText == "") return;
-
-    if (message == null) {
-      flushing = true;
-      dirty = false;
-      message = await invokeMsg.reply(messageText);
-      onCreate(message);
-      if (dirty) queue();
-      flushing = false;
-    } else {
-      await message.edit(content: messageText);
+    dirty = false;
+    if (messageText != "" && !deleted) {
+      if (message == null) {
+        message = await invokeMsg.reply(messageText);
+        onCreate(message);
+      } else {
+        await message.edit(content: messageText);
+      }
     }
+
+    lastMessage = DateTime.now().millisecondsSinceEpoch;
+    throttle = min(5000, throttle + 1000);
+
+    if (dirty) await queue();
+    flushing = false;
+    lastFlush.complete();
+    lastFlush = Completer();
   }
 
-  void queue() {
-    if (msgQueue != null || cancelled.isCompleted) return;
-    msgQueue = Timer(Duration(milliseconds: 250), flush);
+  Future queue() async {
+    await flush();
   }
 
-  void set(String msg) {
+  void set(String msg) async {
     messageText = msg;
-    queue();
+    await queue();
   }
 
-  void add(List<int> event) {
+  void add(List<int> event) async {
     messageText += Utf8Codec().decode(event, allowMalformed: true);
-    queue();
+    await queue();
   }
 
-  Future close() {
-    flush();
+  Future close() async {
+    await flush();
     cancel();
     return null;
   }
@@ -133,6 +151,8 @@ class CommandArgs {
   void expectNone() {
     if (idx != args.length) throw "Too many arguments";
   }
+
+  Future<Null> get onCancel => res.cancelled.future;
 }
 
 class CommandsModule extends TangentModule {
@@ -187,9 +207,10 @@ class CommandsModule extends TangentModule {
       text = text.substring("<@${nyxx.self.id}>".length).trimLeft();
     } else return;
     var args = text.split(RegExp("\\s+"));
-    var idx = args.isEmpty ? 0 : text.indexOf(RegExp("\\s"), args.first.length);
+    if (args.isEmpty) return;
+    var idx = text.indexOf(RegExp("\\s"), args.first.length);
     var name = args.isEmpty ? "" : args.removeAt(0);
-    if (idx == -1) idx = args.isEmpty ? 0 : args.first.length;
+    if (idx == -1) idx = args.isEmpty ? name.length : args.first.length;
     if (commands.containsKey(name)) {
       var c = commands[name];
       if (c.meta.trusted && !trusted) return;
@@ -199,8 +220,9 @@ class CommandsModule extends TangentModule {
       });
 
       if (userResponses.containsKey(msg.m.author.id)) {
-        var pmsg = userResponses[msg.m.author.id].message;
-        if (pmsg != null) responses.remove(pmsg.id);
+        var pmsg = userResponses[msg.m.author.id];
+        pmsg.cancel();
+        if (pmsg.message != null) responses.remove(pmsg.message.id);
       }
 
       userResponses[msg.m.author.id] = res;
@@ -221,7 +243,7 @@ class CommandsModule extends TangentModule {
     if (userResponses.containsKey(msg.m.author.id)) {
       var res = userResponses[msg.m.author.id];
       if (msg.m.id != res.invokeMsg.m.id) return;
-      await invoke(msg, res: res.replace());
+      await invoke(msg, res: await res.replace());
     }
   }
 
@@ -234,12 +256,13 @@ class CommandsModule extends TangentModule {
       }
     }
 
-    if (userResponses.containsKey(msg.m.id)) {
-      var res = userResponses[msg.m.id];
+    if (userResponses.containsKey(msg.m.author.id)) {
+      var res = userResponses[msg.m.author.id];
       await res.close();
-      userResponses.remove(msg.m.id);
+      userResponses.remove(msg.m.author.id);
       if (res.message != null) {
         responses.remove(res.message.id);
+        res.deleted = true;
         await res.message.delete();
       }
     }
