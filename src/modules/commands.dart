@@ -17,9 +17,10 @@ class CommandEntry {
 }
 
 class Command {
-  const Command({this.alias, this.trusted = false});
+  const Command({this.alias, this.trusted = false, this.admin});
   final List<String> alias;
   final bool trusted;
+  final bool admin;
 }
 
 typedef void _OnMessageCreate(ds.Message message);
@@ -191,11 +192,13 @@ class CommandsModule extends TangentModule {
     if (channel.guild.id.id.toString() != "368249740120424449") return;
 
     var botChannel = "583237985131036702";
-    var trustedRole = "368249935281389578";
+    var trustedRole = "368249904658644992";
+    var adminRole = "368249923222634496";
     ds.Member u = msg.m.author;
-    bool trusted = u.roles.any((e) => e.id.id.toString() == trustedRole);
+    bool userTrusted = u.roles.any((e) => e.id.id.toString() == trustedRole);
+    bool userAdmin = u.roles.any((e) => e.id.id.toString() == trustedRole);
 
-    if (!trusted && msg.m.channel.id.id.toString() != botChannel) return;
+    if (!userTrusted && msg.m.channel.id.id.toString() != botChannel) return;
 
     const prefix = "α";
     var text = msg.m.content.trim();
@@ -213,7 +216,8 @@ class CommandsModule extends TangentModule {
     if (idx == -1) idx = args.isEmpty ? name.length : args.first.length;
     if (commands.containsKey(name)) {
       var c = commands[name];
-      if (c.meta.trusted && !trusted) return;
+      if (c.meta.trusted && !userTrusted) return;
+      if (c.meta.admin && !userAdmin) return;
 
       res ??= CommandRes(msg, (rmsg) {
         responses[rmsg.id] = res;
