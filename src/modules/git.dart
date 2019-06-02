@@ -61,6 +61,7 @@ class GitModule extends TangentModule {
           if (nRemoved > 0) lmsg.add("$nRemoved file${nRemoved == 1 ? "" : "s"} removed");
           var nModified = commits.expand((e) => e["modified"]).length;
           if (nModified > 0) lmsg.add("$nModified file${nModified == 1 ? "" : "s"} modified");
+          if (lmsg.isNotEmpty) messages.add("");
           messages.add(lmsg.join("\n"));
 
           await ch.send(
@@ -70,7 +71,7 @@ class GitModule extends TangentModule {
                 ..name = "${ev["repository"]["name"]}:$branch +${commits.length} New commit${commits.length > 1 ? "s" : ""}"
                 ..url = ev["repository"]["html_url"]
               )
-              ..description = messages.join("\n\n")
+              ..description = messages.join("\n")
               ..footer = (EmbedFooterBuilder()
                 ..text = ev["pusher"]["name"]
                 ..iconUrl = ev["sender"]["avatar_url"]
