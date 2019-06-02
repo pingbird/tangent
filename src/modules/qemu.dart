@@ -174,25 +174,13 @@ class QEmuModule extends TangentModule {
     return args.res.close();
   }
 
-  @Command(trusted: true) qexec(CommandArgs args) async {
-    args.res.writeln("Starting process...");
-    var proc = await startProc("/bin/sh", ["-c", args.argText], workingDirectory: "/home/kek", killOn: args.onCancel);
-    args.res.set("");
-    if (proc == null) {
-      args.res.writeln("Failed to start process");
-      return args.res.close();
-    }
-
-    args.res.writeln("[${proc?.pid}]");
-
-    proc.stdout.listen(args.res.add);
-    proc.stderr.listen(args.res.add);
-    var ex = await proc.exitCode;
-    args.res.writeln("\n/bin/sh finished with exit code $ex");
+  @Command(trusted: true) sh(CommandArgs args) async {
+    await basicRunProgram(args.res, "/bin/sh", ["-c", args.argText]);
     return args.res.close();
   }
 
   Future<bool> basicWrite(CommandRes ares, String file, String text) async {
+    print("writing $file '$text'");
     var p = await startProc("tee", [file], killOn: ares.cancelled.future);
     if (p == null) {
       ares.writeln("Failed to write file");
@@ -207,11 +195,11 @@ class QEmuModule extends TangentModule {
   Tuple3<List<String>, String, List<String>> extractArgs(String code) {
     var cargs = <String>[];
     var pargs = <String>[];
-    var m = RegExp("(.+?)\w*```(.+)```(.+?)").firstMatch(code);
+    var m = RegExp("(.+?)?\w*```(.+)```(.+?)?").firstMatch(code);
     if (m != null) {
-      cargs = ArgParse(m.group(1), parseFlags: false).list;
+      cargs = ArgParse(m.group(1) ?? "", parseFlags: false).list;
       code = m.group(2);
-      pargs = ArgParse(m.group(3), parseFlags: false).list;
+      pargs = ArgParse(m.group(3) ?? "", parseFlags: false).list;
     }
     return Tuple3(cargs, code, pargs);
   }
@@ -246,19 +234,17 @@ class QEmuModule extends TangentModule {
       return false;
     }
 
-    var s = ares.messageText;
-
+    var pre = ares.messageText;
     ares.writeln("Running...");
-
     StreamGroup.merge([p.stdout, p.stderr]).listen((data) {
-      if (s != null) ares.set(s);
-      s = null;
+      if (pre != null) ares.set(pre);
+      pre = null;
       ares.add(data);
     });
-
+    
     var ex = await p.exitCode;
-    if (ex != 0 || s != null) {
-      if (s != null) ares.set(s);
+    if (ex != 0 || pre != null) {
+      if (pre != null) ares.set(pre);
       ares.writeln("\n$program finished with exit code $ex");
     };
     return true;
