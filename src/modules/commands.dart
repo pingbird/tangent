@@ -54,41 +54,42 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
   int lastMessage;
   int throttle = 100;
 
+  String get dbgId => invokeMsg.m.id.toString().substring(0, 5);
+
   Future flush() async {
-    if (cancelled.isCompleted) return;
-
-    if (flushing) {
-      dirty = true;
-      return;
-    }
-
+    if (!cancelled.isCompleted) dirty = true;
+    if (flushing) return;
     flushing = true;
 
-    var time = DateTime.now().millisecondsSinceEpoch;
+    while (dirty && !deleted) {
+      var time = DateTime.now().millisecondsSinceEpoch;
 
-    if (throttle != 0) {
-      if (lastMessage != null) throttle = max(0, throttle - (time - lastMessage));
-      if (throttle != 0) await Future.delayed(Duration(milliseconds: throttle));
-    }
-
-    if (messageText.length > 2000) {
-      messageText = messageText.substring(messageText.length - 2000, messageText.length);
-    }
-
-    dirty = false;
-    if (messageText != "" && !deleted) {
-      if (message == null) {
-        message = await invokeMsg.reply(messageText);
-        onCreate(message);
-      } else {
-        await message.edit(content: messageText);
+      if (throttle != 0) {
+        if (lastMessage != null)
+          throttle = max(0, throttle - (time - lastMessage));
+        if (throttle != 0) await Future.delayed(
+            Duration(milliseconds: throttle));
       }
+
+      if (messageText.length > 2000) {
+        messageText = messageText.substring(
+            messageText.length - 2000, messageText.length);
+      }
+
+      dirty = false;
+      if (messageText != "" && !deleted) {
+        if (message == null) {
+          message = await invokeMsg.reply(messageText);
+          onCreate(message);
+        } else {
+          await message.edit(content: messageText);
+        }
+      }
+
+      lastMessage = DateTime.now().millisecondsSinceEpoch;
+      throttle = min(5000, throttle + 1000);
     }
 
-    lastMessage = DateTime.now().millisecondsSinceEpoch;
-    throttle = min(5000, throttle + 1000);
-
-    if (dirty) await queue();
     flushing = false;
     lastFlush.complete();
     lastFlush = Completer();
@@ -115,6 +116,13 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
   }
 
   Future get done => cancelled.future;
+
+  void addError(Object error, [StackTrace stackTrace]) {
+    stderr.writeln("/// CommandRes Error ///");
+    stderr.writeln(error);
+    stderr.writeln(stackTrace);
+    cancel();
+  }
 }
 
 class CommandArgs {
@@ -198,7 +206,7 @@ class CommandsModule extends TangentModule {
     bool userTrusted = u.roles.any((e) => e.id.id.toString() == trustedRole);
     bool userAdmin = u.roles.any((e) => e.id.id.toString() == trustedRole);
 
-    if (!userTrusted && msg.m.channel.id.id.toString() != botChannel) return;
+    if (!userAdmin && msg.m.channel.id.id.toString() != botChannel) return;
 
     var prefixes = [
       ".", "α", "<@!${nyxx.self.id}>", "<@${nyxx.self.id}>",
@@ -259,19 +267,19 @@ class CommandsModule extends TangentModule {
   }
 
   @override void onMessageDelete(TangentMsg msg) async {
-    if (responses.containsKey(msg.m.id)) {
-      var res = responses[msg.m.id];
-      responses.remove(msg.m.id);
+    if (responses.containsKey(msg.id)) {
+      var res = responses[msg.id];
+      responses.remove(msg.id);
       if (userResponses.containsKey(res.invokeMsg.m.author.id)) {
         userResponses.remove(res.invokeMsg.m.author.id);
       }
     }
 
-    if (userResponses.containsKey(msg.m.author.id)) {
+    if (userResponses.containsKey(msg?.m?.author?.id)) {
       var res = userResponses[msg.m.author.id];
-      if (msg.m.id == res.invokeMsg.m.id) {
+      if (msg.id == res.invokeMsg.id) {
         await res.close();
-        userResponses.remove(msg.m.author.id);
+        userResponses.remove(msg.m?.author?.id);
         if (res.message != null) {
           responses.remove(res.message.id);
           res.deleted = true;

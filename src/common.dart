@@ -18,10 +18,6 @@ abstract class BasicStringSink implements StreamSink<List<int>>, StringSink {
     write("${obj}\n");
   }
 
-  addError(Object error, [StackTrace stackTrace]) {
-    throw error;
-  }
-
   Future addStream(Stream<List<int>> stream) async {
     await stream.listen(add).asFuture();
     return null;
@@ -245,4 +241,23 @@ class ArgParse {
   Map<String, String> map = new Map<String, String>();
   List<String> list = new List<String>();
   String raw = "";
+}
+
+String sizeToString(int bytes, [int frac = 1]) {
+  var n = bytes.toDouble();
+  if (n < 1024) {
+    return "${n.toStringAsFixed(0)}B";
+  }
+
+  for (var u in [
+    "KB", "MB", "GB", "TB", "EB", "ZB",
+  ]) {
+    n = n / 1024;
+    if (n < 500) {
+      return "${n.toStringAsFixed(frac)}$u";
+    }
+  }
+
+  n / 1024;
+  return "${n.toStringAsFixed(frac)}YB";
 }

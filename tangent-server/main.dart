@@ -92,23 +92,25 @@ main() async {
             send(["pong"]);
           } else if (cmd[0] == "fopen") {
             try {
-              files[cmd[1]] = await File(cmd[2]).open(mode: FileMode.write);
+              const fileModes = [
+                FileMode.READ,
+                FileMode.WRITE,
+                FileMode.APPEND,
+              ];
+              files[cmd[1]] = await File(cmd[2]).open(mode: fileModes[cmd[3]]);
+              send(["fopened", cmd[1]]);
             } catch (e, bt) {
               send(["ferror", cmd[1], "$e", "$bt"]);
             }
           } else if (cmd[0] == "fsize") {
-            send(["fsize", ]);
+            send(["fsize", cmd[1], await files[cmd[1]].length()]);
           } else if (cmd[0] == "fwrite") {
             await files[cmd[1]].writeFrom(Base64Codec().decode(cmd[2]));
           } else if (cmd[0] == "fread") {
             var f = files[cmd[1]];
             int bytes = cmd[2];
-            while (bytes > 0) {
-              int n = min(0x1000, bytes);
-              var data = await f.read(bytes);
-              send(["fdata", cmd[1], Base64Codec().encode(data)]);
-              bytes -= n;
-            }
+            var data = await f.read(bytes);
+            send(["fdata", cmd[1], Base64Codec().encode(data)]);
           } else if (cmd[0] == "fclose") {
             await files[cmd[1]].close();
             files.remove(cmd[1]);

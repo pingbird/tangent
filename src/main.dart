@@ -12,7 +12,8 @@ import 'package:vm_service_lib/vm_service_lib_io.dart' as vm;
 import 'dart:developer' as dev;
 
 class TangentMsg {
-  TangentMsg(this.m);
+  TangentMsg(this.id, this.m);
+  ds.Snowflake id;
   ds.Message m;
   ds.MessageChannel get channel => m.channel;
   Future<ds.Message> reply(dynamic value) {
@@ -143,13 +144,16 @@ void main(List<String> args) async {
       print("Ready!");
     });
 
-    nyxx.onMessageReceived.listen((ev) => modules.forEach((m) => m.onMessage(TangentMsg(ev.message))));
+    nyxx.onMessageReceived.listen((ev) => modules.forEach((m) => m.onMessage(TangentMsg(ev.message.id, ev.message))));
     nyxx.onMessageUpdate.listen((ev) {
       if (ev.newMessage.author == null) return; // nyxx bug >.<
-      modules.forEach((m) => m.onMessageUpdate(TangentMsg(ev.oldMessage), TangentMsg(ev.newMessage)));
+      modules.forEach((m) => m.onMessageUpdate(TangentMsg(ev.newMessage.id, ev.oldMessage), TangentMsg(ev.newMessage.id, ev.newMessage)));
     });
-    nyxx.onMessageDelete.listen((ev) => modules.forEach((m) => m.onMessageDelete(TangentMsg(ev.message))));
+    nyxx.onMessageDelete.listen((ev) {
+      modules.forEach((m) => m.onMessageDelete(TangentMsg(ev.id, ev.message)));
+    });
   }, onError: (e, bt) {
+    stderr.writeln("/// Zone Error ///");
     stderr.writeln(e);
     stderr.writeln(bt);
   });
