@@ -269,12 +269,14 @@ class CommandsModule extends TangentModule {
 
     if (userResponses.containsKey(msg.m.author.id)) {
       var res = userResponses[msg.m.author.id];
-      await res.close();
-      userResponses.remove(msg.m.author.id);
-      if (res.message != null) {
-        responses.remove(res.message.id);
-        res.deleted = true;
-        await res.message.delete();
+      if (msg.m.id == res.invokeMsg.m.id) {
+        await res.close();
+        userResponses.remove(msg.m.author.id);
+        if (res.message != null) {
+          responses.remove(res.message.id);
+          res.deleted = true;
+          await res.message.delete();
+        }
       }
     }
   }
