@@ -317,7 +317,6 @@ class QCtrl {
             unawaited(files[cmd[1]].close());
             files.remove(cmd[1]);
           } else if (cmd[0] == "fsize") {
-            print("fsize ${cmd[1]} ${files[cmd[1]].sizeCtrl} ${files[cmd[1]].sizeCtrl?.isCompleted}");
             var c = files[cmd[1]].sizeCtrl;
             if (c != null && !c.isCompleted) {
               c.complete(cmd[2]);
@@ -364,6 +363,8 @@ class QCtrl {
   }
 
   Future<bool> basicWrite(CommandRes ares, String file, String text) async {
+    var t0 = DateTime.now().millisecondsSinceEpoch;
+
     var p = await startProc("tee", [file], killOn: ares.cancelled.future);
     if (p == null) {
       ares.writeln("Failed to write file");
@@ -372,6 +373,10 @@ class QCtrl {
     p.write(text);
     await p.close();
     await p.exitCode;
+
+    var t1 = DateTime.now().millisecondsSinceEpoch;
+    print("[qemu] basicWrite $file : ${t1 - t0}ms");
+
     return true;
   }
 
@@ -390,6 +395,8 @@ class QCtrl {
   Future<bool> basicCompile(CommandRes ares, String compiler, List<String> args) async {
     var s = ares.messageText;
 
+    var t0 = DateTime.now().millisecondsSinceEpoch;
+
     ares.set("${s}Compiling...");
     var p = await startProc(compiler, args, killOn: ares.cancelled.future);
     if (p == null) {
@@ -407,10 +414,15 @@ class QCtrl {
       return false;
     }
 
+    var t1 = DateTime.now().millisecondsSinceEpoch;
+    print("[qemu] basicCompile $compiler : ${t1 - t0}ms");
+
     return true;
   }
 
   Future<bool> basicRunProgram(CommandRes ares, String program, List<String> args) async {
+    var t0 = DateTime.now().millisecondsSinceEpoch;
+
     var p = await startProc(program, args, killOn: ares.cancelled.future);
     if (p == null) {
       ares.writeln("Failed to run $program");
@@ -430,6 +442,10 @@ class QCtrl {
       if (pre != null) ares.set(pre);
       ares.writeln("\n$program finished with exit code $ex");
     };
+
+    var t1 = DateTime.now().millisecondsSinceEpoch;
+    print("[qemu] basicRunProgram $program : ${t1 - t0}ms");
+
     return true;
   }
 }

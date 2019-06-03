@@ -229,36 +229,13 @@ class QEmuModule extends TangentModule {
   }
 
   @Command(trusted: true) sh(CommandArgs args) async {
-    await basicRunProgram(args.res, "/bin/sh", ["-c", args.argText]);
+    await q.basicRunProgram(args.res, "/bin/sh", ["-c", args.argText]);
     return args.res.close();
   }
 
   @Command(trusted: true) bash(CommandArgs args) async {
-    await basicRunProgram(args.res, "/bin/bash", ["-c", args.argText]);
+    await q.basicRunProgram(args.res, "/bin/bash", ["-c", args.argText]);
     return args.res.close();
-  }
-
-  Future<bool> basicRunProgram(CommandRes ares, String program, List<String> args) async {
-    var p = await q.startProc(program, args, killOn: ares.cancelled.future);
-    if (p == null) {
-      ares.writeln("Failed to run $program");
-      return false;
-    }
-
-    var pre = ares.messageText;
-    ares.writeln("Running...");
-    StreamGroup.merge([p.pstdout, p.pstderr]).listen((data) {
-      if (pre != null) ares.set(pre);
-      pre = null;
-      ares.add(data);
-    });
-
-    var ex = await p.exitCode;
-    if (ex != 0 || pre != null) {
-      if (pre != null) ares.set(pre);
-      ares.writeln("\n$program finished with exit code $ex");
-    };
-    return true;
   }
 
   @Command(trusted: true, alias: ["asm", "x86"]) x86(CommandArgs args) async {
@@ -272,7 +249,7 @@ class QEmuModule extends TangentModule {
         ["-o", "tangent", "-masm=intel", "tangent.S"]..addAll(prog.item1)
     )) return args.res.close();
 
-    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+    if (!await q.basicRunProgram(args.res, "./tangent", prog.item3))
       return args.res.close();
 
     return args.res.close();
@@ -289,7 +266,7 @@ class QEmuModule extends TangentModule {
         ["-o", "tangent", "-masm=intel", "tangent.S"]..addAll(prog.item1)
     )) return args.res.close();
 
-    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+    if (!await q.basicRunProgram(args.res, "./tangent", prog.item3))
       return args.res.close();
 
     return args.res.close();
@@ -306,7 +283,7 @@ class QEmuModule extends TangentModule {
         ["-o", "tangent", "tangent.c"]..addAll(prog.item1)
     )) return args.res.close();
 
-    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+    if (!await q.basicRunProgram(args.res, "./tangent", prog.item3))
       return args.res.close();
 
     return args.res.close();
@@ -323,7 +300,7 @@ class QEmuModule extends TangentModule {
         ["-o", "tangent", "tangent.cpp"]..addAll(prog.item1)
     )) return args.res.close();
 
-    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+    if (!await q.basicRunProgram(args.res, "./tangent", prog.item3))
       return args.res.close();
 
     return args.res.close();
@@ -340,7 +317,7 @@ class QEmuModule extends TangentModule {
         ["-o", "tangent", "tangent.c"]..addAll(prog.item1)
     )) return args.res.close();
 
-    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+    if (!await q.basicRunProgram(args.res, "./tangent", prog.item3))
       return args.res.close();
 
     return args.res.close();
@@ -357,7 +334,7 @@ class QEmuModule extends TangentModule {
         ["-o", "tangent", "tangent.cpp"]..addAll(prog.item1)
     )) return args.res.close();
 
-    if (!await basicRunProgram(args.res, "./tangent", prog.item3))
+    if (!await q.basicRunProgram(args.res, "./tangent", prog.item3))
       return args.res.close();
 
     return args.res.close();
@@ -368,7 +345,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.lua", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/lua5.3",
       ["./tangent.lua"]..addAll(prog.item3),
@@ -383,7 +360,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.lua", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/lua5.2",
       ["./tangent.lua"]..addAll(prog.item3),
@@ -398,7 +375,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.lua", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/lua5.1",
       ["./tangent.lua"]..addAll(prog.item3),
@@ -413,7 +390,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.lua", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/luajit",
       ["./tangent.lua"]..addAll(prog.item3),
@@ -428,7 +405,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.py", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/python3",
       ["./tangent.py"]..addAll(prog.item3),
@@ -443,7 +420,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.py", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/python2",
       ["./tangent.py"]..addAll(prog.item3),
@@ -458,7 +435,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.js", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/js",
       ["./tangent.js"]..addAll(prog.item3),
@@ -473,7 +450,7 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.pl", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/perl",
       ["./tangent.pl"]..addAll(prog.item3),
@@ -493,7 +470,7 @@ class QEmuModule extends TangentModule {
         ["-g", "Tangent.java"]..addAll(prog.item1)
     )) return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
         args.res,
         "/usr/bin/java",
         ["-cp", ".", "Tangent"]..addAll(prog.item3)
@@ -507,10 +484,10 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.lisp", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/sbcl",
-      ["./tangent.lisp"]..addAll(prog.item3),
+      ["--script", "./tangent.lisp"]..addAll(prog.item3),
     )) return args.res.close();
 
     return args.res.close();
@@ -521,9 +498,9 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./tangent.bf", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
-      "/usr/bin/sh",
+      "/bin/sh",
       ["-c", "cat ./tangent.bf | hsbrainfuck"],
     )) return args.res.close();
 
@@ -531,21 +508,30 @@ class QEmuModule extends TangentModule {
   }
 
   @Command(trusted: true, alias: ["c#", "cs", "csharp"]) csharp(CommandArgs args) async {
+    var t0 = DateTime.now().millisecondsSinceEpoch;
+
+    print("Creating project");
     if (!await q.basicCompile(
       args.res,
       "/usr/bin/dotnet",
       ["new", "console", "--force"]
     )) return args.res.close();
 
+    print("Writing file ${DateTime.now().millisecondsSinceEpoch - t0}");
+
     var prog = q.extractArgs(args.argText);
     if (!await q.basicWrite(args.res, "./Program.cs", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    print("Dotnet run ${DateTime.now().millisecondsSinceEpoch - t0}");
+
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/dotnet",
       ["run", "-p=kek.csproj"],
     )) return args.res.close();
+
+    print("Done ${DateTime.now().millisecondsSinceEpoch - t0}");
 
     return args.res.close();
   }
@@ -561,10 +547,30 @@ class QEmuModule extends TangentModule {
     if (!await q.basicWrite(args.res, "./Program.fs", prog.item2))
       return args.res.close();
 
-    if (!await basicRunProgram(
+    if (!await q.basicRunProgram(
       args.res,
       "/usr/bin/dotnet",
       ["run", "-p=kek.fsproj"],
+    )) return args.res.close();
+
+    return args.res.close();
+  }
+
+  @Command(trusted: true, alias: ["hs", "ghc", "haskell"]) haskell(CommandArgs args) async {
+    var prog = q.extractArgs(args.argText);
+    if (!await q.basicWrite(args.res, "./Tangent.hs", prog.item2))
+      return args.res.close();
+
+    if (!await q.basicCompile(
+        args.res,
+        "/usr/bin/ghc",
+        ["Tangent.hs"]..addAll(prog.item1)
+    )) return args.res.close();
+
+    if (!await q.basicRunProgram(
+      args.res,
+      "./Tangent",
+      prog.item3,
     )) return args.res.close();
 
     return args.res.close();

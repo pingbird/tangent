@@ -227,7 +227,7 @@ class CommandsModule extends TangentModule {
     var args = text.split(RegExp("\\s+"));
     if (args.isEmpty) return;
     var idx = text.indexOf(RegExp("\\S"), args.first.length);
-    var name = args.isEmpty ? "" : args.removeAt(0);
+    var name = args.isEmpty ? "" : args.removeAt(0).toLowerCase();
     if (idx == -1) idx = args.isEmpty ? name.length : args.first.length;
     if (commands.containsKey(name)) {
       var c = commands[name];
