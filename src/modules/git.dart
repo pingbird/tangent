@@ -46,7 +46,6 @@ class GitModule extends TangentModule {
     TextChannel ch = await nyxx.getChannel(Snowflake("583480062993629194"));
     await for (var ev in events.stream) {
       try {
-        print(JsonEncoder.withIndent("  ").convert(ev));
         if (ev["event-type"] == "push") {
           List commits = ev["commits"];
           var branch = (ev["ref"] as String).substring(11);

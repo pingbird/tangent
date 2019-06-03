@@ -4,11 +4,13 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 
+import 'dart:math';
+
 main() async {
   var server = await ServerSocket.bind("0.0.0.0", 5555);
   server.listen((cl) async {
     var p = <int, Process>{};
-    var files = <int, IOSink>{};
+    var files = <int, RandomAccessFile>{};
     void cleanup() {
       for (var proc in p.values) proc.kill(ProcessSignal.sigkill);
       for (var f in files.values) f.close();
@@ -89,9 +91,24 @@ main() async {
           } else if (cmd[0] == "ping") {
             send(["pong"]);
           } else if (cmd[0] == "fopen") {
-            files[cmd[1]] = await File(cmd[2]).openWrite();
+            try {
+              files[cmd[1]] = await File(cmd[2]).open(mode: FileMode.write);
+            } catch (e, bt) {
+              send(["ferror", cmd[1], "$e", "$bt"]);
+            }
+          } else if (cmd[0] == "fsize") {
+            send(["fsize", ]);
           } else if (cmd[0] == "fwrite") {
-            files[cmd[1]].add(Base64Codec().decode(cmd[2]));
+            await files[cmd[1]].writeFrom(Base64Codec().decode(cmd[2]));
+          } else if (cmd[0] == "fread") {
+            var f = files[cmd[1]];
+            int bytes = cmd[2];
+            while (bytes > 0) {
+              int n = min(0x1000, bytes);
+              var data = await f.read(bytes);
+              send(["fdata", cmd[1], Base64Codec().encode(data)]);
+              bytes -= n;
+            }
           } else if (cmd[0] == "fclose") {
             await files[cmd[1]].close();
             files.remove(cmd[1]);

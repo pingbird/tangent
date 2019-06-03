@@ -136,7 +136,7 @@ class QEmuModule extends TangentModule {
       lastConnectAttempt = DateTime.now().millisecondsSinceEpoch;
       try {
         connectionStateDbg = "connect";
-        s = await Socket.connect("192.168.69.180", 5555, timeout: Duration(milliseconds: 500));
+        s = await Socket.connect("192.168.69.69", 5555, timeout: Duration(milliseconds: 500));
         print("[qemu] Connected to tangent-server");
         throttle = 0;
         connectionStateDbg = "connected";
@@ -612,6 +612,36 @@ class QEmuModule extends TangentModule {
       args.res,
       "/usr/bin/python2",
       ["./tangent.py"]..addAll(prog.item3),
+    ))
+      return args.res.close();
+
+    return args.res.close();
+  }
+
+  @Command(trusted: true, alias: ["js", "node"]) js(CommandArgs args) async {
+    var prog = extractArgs(args.argText);
+    if (!await basicWrite(args.res, "./tangent.js", prog.item2))
+      return args.res.close();
+
+    if (!await basicRunProgram(
+      args.res,
+      "/usr/bin/js",
+      ["./tangent.js"]..addAll(prog.item3),
+    ))
+      return args.res.close();
+
+    return args.res.close();
+  }
+
+  @Command(trusted: true, alias: ["perl", "pl"]) perl(CommandArgs args) async {
+    var prog = extractArgs(args.argText);
+    if (!await basicWrite(args.res, "./tangent.pl", prog.item2))
+      return args.res.close();
+
+    if (!await basicRunProgram(
+      args.res,
+      "/usr/bin/perl",
+      ["./tangent.pl"]..addAll(prog.item3),
     ))
       return args.res.close();
 
