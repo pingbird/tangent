@@ -417,7 +417,7 @@ class _RunTask extends _Task {
 }
 
 class TaskBuilder {
-  TaskBuilder(this.q, CommandArgs args) {
+  TaskBuilder(this.q, CommandArgs args, {bool trimCode = false}) {
     code = args.argText;
     res = args.res;
 
@@ -427,6 +427,8 @@ class TaskBuilder {
       code = m.group(2);
       pargs = ArgParse(m.group(3) ?? "", parseFlags: false).list;
     }
+
+    if (trimCode) code = code.trim();
   }
 
   QCtrl q;
@@ -477,7 +479,6 @@ class TaskBuilder {
       } else if (task is _CompileTask) {
         res.set("${s}Compiling...");
         var p = await q.startProc(task.program, task.args, killOn: res.cancelled.future);
-        res.set(s);
 
         var cres = await StreamGroup.merge([p.pstdout, p.pstderr]).transform(Utf8Decoder()).join();
 
@@ -487,6 +488,8 @@ class TaskBuilder {
           res.writeln("${task.program} finished with exit code $ec");
           break;
         }
+
+        res.set(s);
 
         var t1 = DateTime.now().millisecondsSinceEpoch;
         print("[qemu] CompileTask ${task.program} : ${t1 - t0}ms");
