@@ -25,60 +25,73 @@ main() async {
           var cmd = jsonDecode(line);
           if (cmd[0] == "start") {
             int id = cmd[1];
-            p[id] = await Process.start(cmd[2], (cmd[3] as List)?.cast<String>(), workingDirectory: cmd[4], environment: (cmd[5] as Map)?.cast<String, String>());
-            bool drain = cmd[6] == true;
-            send(["started", id, p[id].pid]);
 
-            bool stdoutDone = false;
-            bool stderrDone = false;
-            int exitCode;
+            try {
+              p[id] = await Process.start(
+                cmd[2], (cmd[3] as List)?.cast<String>(),
+                workingDirectory: cmd[4],
+                environment: (cmd[5] as Map)?.cast<String, String>()
+              );
 
-            if (drain) {
-              stdoutDone = true;
-              stderrDone = true;
-              p[id].stdout.drain();
-              p[id].stderr.drain();
-            } else {
-              p[id].stdout.listen((data) {
-                stdout.add(data);
-                send(["stdout", id, Base64Codec().encode(data)]);
-              }, onDone: () {
+              bool drain = cmd[6] == true;
+              send(["started", id, p[id].pid]);
+
+              bool stdoutDone = false;
+              bool stderrDone = false;
+              int exitCode;
+
+              if (drain) {
                 stdoutDone = true;
-                if (stderrDone && exitCode != null) {
-                  send(["exit", id, exitCode]);
-                  p.remove(id);
-                }
-              }, onError: (e) {
-                stderr.writeln(e);
-                cleanup();
-              });
-
-              p[id].stderr.listen((data) {
-                stderr.add(data);
-                send(["stderr", id, Base64Codec().encode(data)]);
-              }, onDone: () {
                 stderrDone = true;
-                if (stdoutDone && exitCode != null) {
+                p[id].stdout.drain();
+                p[id].stderr.drain();
+              } else {
+                p[id].stdout.listen((data) {
+                  stdout.add(data);
+                  send(["stdout", id, Base64Codec().encode(data)]);
+                }, onDone: () {
+                  stdoutDone = true;
+                  if (stderrDone && exitCode != null) {
+                    send(["exit", id, exitCode]);
+                    p.remove(id);
+                  }
+                }, onError: (e) {
+                  cleanup();
+                  stderr.writeln(e);
+                });
+
+                p[id].stderr.listen((data) {
+                  stderr.add(data);
+                  send(["stderr", id, Base64Codec().encode(data)]);
+                }, onDone: () {
+                  stderrDone = true;
+                  if (stdoutDone && exitCode != null) {
+                    send(["exit", id, exitCode]);
+                    p.remove(id);
+                  }
+                }, onError: (e) {
+                  cleanup();
+                  stderr.writeln(e);
+                });
+              }
+
+              (p[id].exitCode.then((e) {
+                print("got exit code");
+                exitCode = e;
+                if (stdoutDone && stderrDone) {
                   send(["exit", id, exitCode]);
                   p.remove(id);
                 }
               }, onError: (e) {
-                stderr.writeln(e);
                 cleanup();
-              });
+                stderr.writeln(e);
+              }));
+            } catch (e, bt) {
+              stderr.writeln(e);
+              stderr.writeln(bt);
+              send(["exit", id, "$e", "$bt"]);
             }
 
-            p[id].exitCode.then((e) {
-              print("got exit code");
-              exitCode = e;
-              if (stdoutDone && stderrDone) {
-                send(["exit", id, exitCode]);
-                p.remove(id);
-              }
-            }, onError: (e) {
-              stderr.writeln(e);
-              cleanup();
-            });
           } else if (cmd[0] == "stdin") {
             p[cmd[1]].stdin.add(Base64Codec().decode(cmd[2]));
           } else if (cmd[0] == "close") {
