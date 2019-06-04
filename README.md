@@ -74,7 +74,7 @@ Hello
 The bot is interactive, if you edit your message with a command it will re-run your command and update it's message.
 When a user enters a new command or edit a previous one it will kill the previous process to prevent anything from lingering.
 
-<details><summary>CLICK ME</summary>
+<details><summary>`sh <code>` - Standard /bin/sh</summary>
 <p>
 
 #### yes, even hidden code blocks!
