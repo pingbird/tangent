@@ -76,18 +76,23 @@ When a user enters a new command or edit a previous one it will kill the previou
 
 Commands:
 <details><summary>`sh <code>` - Standard /bin/sh</summary>
+<p>
 ```sh
 echo Hello from /bin/sh
 ```
+</p>
 </details>
     
 <details><summary>`bash <code>` Standard /bin/bash, Example:</summary>
+<p>
 ```sh
 echo Hello from /bin/bash
 ```
+</p>
 </details>
 
 <details><summary>`arm <code>` ARM Assembly, Example:</summary>
+<p>
 ```arm
 .globl main
 main:
@@ -100,9 +105,11 @@ main:
 hello_text:
     .string "Hello from ARM\n"
 ```
+</p>
 </details>
 
 <details><summary>`x86 <code>` x86_64 Assembly, Example:</summary>
+<p>
 ```x86asm
 .intel_syntax noprefix
 .globl main
@@ -117,4 +124,5 @@ main:
 hello_text:
     .string "Hello from x86\n"
 ```
+</p>
 </details>
