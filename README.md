@@ -90,7 +90,8 @@ echo Hello from /bin/bash
 </p></details>
 
 `arm <code>` - ARM Assembly
-<details><summary>Example</summary><p>
+<details><summary>Example</summary>
+<p>
 ```arm
 .globl main
 main:
@@ -103,7 +104,8 @@ main:
 hello_text:
     .string "Hello from ARM\n"
 ```
-</p></details>
+</p>
+</details>
 
 `x86 <code>` - x86_64 Assembly
 <details><summary>Example</summary>
