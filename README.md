@@ -33,8 +33,8 @@ Any of these prefixes can be used to execute commands
 `purge <n>` - Purges a number of messages [admin only]
 
 ### Managment
-`qstart` - Start the VM [trusted only]
-`qrestart` - Restart the VM [trusted only]
+`qstart` - Start the VM [trusted only]\
+`qrestart` - Restart the VM [trusted only]\
 `qclean` - Revert the VM state to a clean snapshot [trusted only]
 
 ### Upload / Download
@@ -78,11 +78,15 @@ Commands:
 <details><summary>`sh <code>` - Standard /bin/sh</summary>
 ```sh
 echo Hello from /bin/sh
-```</details>
+```
+</details>
+    
 <details><summary>`bash <code>` Standard /bin/bash, Example:</summary>
 ```sh
 echo Hello from /bin/bash
-```</details>
+```
+</details>
+
 <details><summary>`arm <code>` ARM Assembly, Example:</summary>
 ```arm
 .globl main
@@ -95,7 +99,9 @@ main:
     bx lr
 hello_text:
     .string "Hello from ARM\n"
-```</details>
+```
+</details>
+
 <details><summary>`x86 <code>` x86_64 Assembly, Example:</summary>
 ```x86asm
 .intel_syntax noprefix
@@ -110,4 +116,5 @@ main:
     ret
 hello_text:
     .string "Hello from x86\n"
-```</details>
+```
+</details>
