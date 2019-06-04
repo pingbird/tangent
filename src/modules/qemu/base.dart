@@ -181,14 +181,13 @@ class QCtrl {
   int lastUpload;
 
   Future<QProc> startProc(String proc, List<String> args, {String workingDirectory, Map<String, String> environment, Future killOn, bool drain = false}) async {
-    if (serviceSocket == null) return null;
+    if (serviceSocket == null) throw "Failed to start $proc: Server offline";
     var n = Random().nextInt(0x1000);
     while (starting.containsKey(n)) n++;
     serviceSocket.writeln(jsonEncode(["start", n, proc, args, workingDirectory, environment, drain]));
     var c = Completer<QProc>();
     starting[n] = c;
     var p = await c.future;
-    if (p == null) return null;
 
     unawaited(killOn?.then((_) => p.kill()));
 
@@ -288,9 +287,14 @@ class QCtrl {
           } else if (cmd[0] == "closed") {
             procs[cmd[1]].closedCtrl.complete();
           } else if (cmd[0] == "exit") {
-            connectionStateDbg = "exit";
             var p = procs[cmd[1]];
-            scheduleMicrotask(() async {
+
+            if (p == null) {
+              starting[cmd[1]].completeError(cmd[2], StackTrace.fromString(cmd[3]));
+            }
+
+            connectionStateDbg = "exit";
+            if (p != null) scheduleMicrotask(() async {
               unawaited(p.drain());
               await p.stdoutCtrl.close();
               await p.stderrCtrl.close();
@@ -328,6 +332,7 @@ class QCtrl {
 
         lastConnect = DateTime.now().millisecondsSinceEpoch;
       } on SocketException catch (e) {
+        print("[qemu] Error! $e");
         //
       } catch (e, bt) {
         connectionStateDbg = "qemuError";
@@ -338,9 +343,10 @@ class QCtrl {
         serviceSocket = null;
         await s?.close();
         s.destroy();
-        for (var st in starting.values) {
-          if (!st.isCompleted) st.complete(null);
-        }
+      }
+
+      for (var st in starting.values) {
+        if (!st.isCompleted) st.completeError("Failed to start process: Server disconnected");
       }
 
       for (var p in procs.values) {
@@ -360,64 +366,6 @@ class QCtrl {
     }
 
     connectionStateDbg = "unloaded";
-  }
-
-  Future<bool> basicWrite(CommandRes ares, String file, String text) async {
-    var t0 = DateTime.now().millisecondsSinceEpoch;
-
-    var p = await startProc("tee", [file], killOn: ares.cancelled.future);
-    if (p == null) {
-      ares.writeln("Failed to write file");
-      return false;
-    }
-    p.write(text);
-    await p.close();
-    await p.exitCode;
-
-    var t1 = DateTime.now().millisecondsSinceEpoch;
-    print("[qemu] basicWrite $file : ${t1 - t0}ms");
-
-    return true;
-  }
-
-  Tuple3<List<String>, String, List<String>> extractArgs(String code) {
-    var cargs = <String>[];
-    var pargs = <String>[];
-    var m = RegExp(r"^([\S\s]+?)?```\w*([\S\s]+)```([\S\s]+)?$", multiLine: true).firstMatch(code);
-    if (m != null) {
-      cargs = ArgParse(m.group(1) ?? "", parseFlags: false).list;
-      code = m.group(2);
-      pargs = ArgParse(m.group(3) ?? "", parseFlags: false).list;
-    }
-    return Tuple3(cargs, code, pargs);
-  }
-
-  Future<bool> basicCompile(CommandRes ares, String compiler, List<String> args) async {
-    var s = ares.messageText;
-
-    var t0 = DateTime.now().millisecondsSinceEpoch;
-
-    ares.set("${s}Compiling...");
-    var p = await startProc(compiler, args, killOn: ares.cancelled.future);
-    if (p == null) {
-      ares.writeln("Failed to start ${compiler}");
-      return false;
-    }
-    ares.set(s);
-
-    var res = await StreamGroup.merge([p.pstdout, p.pstderr]).transform(Utf8Decoder()).join();
-
-    var ec = await p.exitCode;
-    if (ec != 0) {
-      ares.writeln("```$res```");
-      ares.writeln("$compiler finished with exit code $ec");
-      return false;
-    }
-
-    var t1 = DateTime.now().millisecondsSinceEpoch;
-    print("[qemu] basicCompile $compiler : ${t1 - t0}ms");
-
-    return true;
   }
 
   Future<bool> basicRunProgram(CommandRes ares, String program, List<String> args) async {
@@ -447,5 +395,127 @@ class QCtrl {
     print("[qemu] basicRunProgram $program : ${t1 - t0}ms");
 
     return true;
+  }
+}
+
+abstract class _Task {}
+
+class _SaveTask extends _Task {
+  String path;
+}
+
+class _CompileTask extends _Task {
+  String program;
+  List<String> args;
+  bool addArgs;
+}
+
+class _RunTask extends _Task {
+  String program;
+  List<String> args;
+  bool addArgs;
+}
+
+class TaskBuilder {
+  TaskBuilder(this.q, CommandArgs args) {
+    code = args.argText;
+    res = args.res;
+
+    var m = RegExp(r"^([\S\s]+?)?```\w*([\S\s]+)```([\S\s]+)?$", multiLine: true).firstMatch(code);
+    if (m != null) {
+      cargs = ArgParse(m.group(1) ?? "", parseFlags: false).list;
+      code = m.group(2);
+      pargs = ArgParse(m.group(3) ?? "", parseFlags: false).list;
+    }
+  }
+
+  QCtrl q;
+  CommandRes res;
+  String code;
+  var cargs = <String>[];
+  var pargs = <String>[];
+  List<_Task> _tasks = [];
+
+  TaskBuilder save(String path) {
+    _tasks.add(_SaveTask()..path = path);
+    return this;
+  }
+
+  TaskBuilder compile(String program, [List<String> args = const [], bool useCompArgs = true, bool addCode = false]) {
+    args = args.toList();
+    if (useCompArgs) args.addAll(cargs);
+    if (addCode) args.add(code);
+    _tasks.add(_CompileTask()
+      ..program = program
+      ..args = args
+    );
+    return this;
+  }
+
+  TaskBuilder run(String program, [List<String> args = const [], bool useProgArgs = true, bool addCode = false]) {
+    args = args.toList();
+    if (useProgArgs) args.addAll(pargs);
+    if (addCode) args.add(code);
+    _tasks.add(_RunTask()
+      ..program = program
+      ..args = args
+    );
+    return this;
+  }
+
+  Future done() async {
+    var s = res.messageText;
+    for (var task in _tasks) {
+      var t0 = DateTime.now().millisecondsSinceEpoch;
+      if (task is _SaveTask) {
+        var f = await q.openFile(task.path, FileMode.write, destroyOn: res.cancelled.future);
+        f.write(code);
+        f.destroy();
+
+        var t1 = DateTime.now().millisecondsSinceEpoch;
+        print("[qemu] SaveTask ${task.path} : ${t1 - t0}ms");
+      } else if (task is _CompileTask) {
+        res.set("${s}Compiling...");
+        var p = await q.startProc(task.program, task.args, killOn: res.cancelled.future);
+        res.set(s);
+
+        var cres = await StreamGroup.merge([p.pstdout, p.pstderr]).transform(Utf8Decoder()).join();
+
+        var ec = await p.exitCode;
+        if (ec != 0) {
+          res.writeln("```$cres```");
+          res.writeln("${task.program} finished with exit code $ec");
+          break;
+        }
+
+        var t1 = DateTime.now().millisecondsSinceEpoch;
+        print("[qemu] CompileTask ${task.program} : ${t1 - t0}ms");
+      } else if (task is _RunTask) {
+        var p = await q.startProc(task.program, task.args, killOn: res.cancelled.future);
+        if (p == null) {
+          res.writeln("Failed to run ${task.program}");
+          return false;
+        }
+
+        var pre = res.messageText;
+        res.writeln("Running...");
+        StreamGroup.merge([p.pstdout, p.pstderr]).listen((data) {
+          if (pre != null) res.set(pre);
+          pre = null;
+          res.add(data);
+        });
+
+        var ex = await p.exitCode;
+        if (ex != 0 || pre != null) {
+          if (pre != null) res.set(pre);
+          res.writeln("\n${task.program} finished with exit code $ex");
+        };
+
+        var t1 = DateTime.now().millisecondsSinceEpoch;
+        print("[qemu] basicRunProgram ${task.program} : ${t1 - t0}ms");
+      }
+    }
+
+    return res.close();
   }
 }
