@@ -75,7 +75,7 @@ The bot is interactive, if you edit your message with a command it will re-run y
 When a user enters a new command or edit a previous one it will kill the previous process to prevent anything from lingering.
 
 Commands:
-<details><summary>`sh <code>` - Standard /bin/sh</summary>
+<details><summary>**sh** *<code>* - Standard /bin/sh</summary>
 <p>
 ```sh
 echo Hello from /bin/sh
@@ -83,7 +83,7 @@ echo Hello from /bin/sh
 </p>
 </details>
     
-<details><summary>`bash <code>` Standard /bin/bash, Example:</summary>
+<details><summary>bash <code> Standard /bin/bash, Example:</summary>
 <p>
 ```sh
 echo Hello from /bin/bash
@@ -91,7 +91,7 @@ echo Hello from /bin/bash
 </p>
 </details>
 
-<details><summary>`arm <code>` ARM Assembly, Example:</summary>
+<details><summary>arm <code> ARM Assembly, Example:</summary>
 <p>
 ```arm
 .globl main
@@ -108,7 +108,7 @@ hello_text:
 </p>
 </details>
 
-<details><summary>`x86 <code>` x86_64 Assembly, Example:</summary>
+<details><summary>x86 <code> x86_64 Assembly, Example:</summary>
 <p>
 ```x86asm
 .intel_syntax noprefix
