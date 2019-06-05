@@ -115,7 +115,8 @@ hello_text:
 `x86 <code>` - x86_64 Assembly
 <details>
 <summary>Example</summary>
-```X86
+
+```asm
 .intel_syntax noprefix
 .globl main
 main:
