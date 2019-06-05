@@ -112,9 +112,8 @@ hello_text:
 ```
 </details>
 
-`x86 <code>` - x86_64 Assembly
 <details>
-<summary>Example</summary>
+<summary>`x86 <code>` - x86_64 Assembly</summary>
 
 ```asm
 .intel_syntax noprefix
