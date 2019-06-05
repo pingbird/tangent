@@ -1,6 +1,6 @@
 ![](https://i.tst.sh/9gQQ5.png)
 
-### Tangent - A discord bot with a full Linux VM
+### Tangent - A discord bot with access to a full Linux VM
 
 ### https://discord.gg/F2F2EdE
 
