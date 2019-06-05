@@ -73,3 +73,14 @@ Hello
 
 The bot is interactive, if you edit your message with a command it will re-run your command and update it's message.
 When a user enters a new command or edit a previous one it will kill the previous process to prevent anything from lingering.
+
+Commands:
+`sh <code>` - Standard /bin/sh
+
+<details>
+<summary>Example</summary>
+
+```sh
+echo Hello from /bin/sh
+```
+</details>
