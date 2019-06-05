@@ -132,7 +132,7 @@ hello_text:
 ```
 </details>
 
-`c <code> - GCC` - 
+`c <code>` - GCC 6.3.0
 <details>
 <summary>Example</summary>
 
@@ -144,7 +144,7 @@ int main() {
 ```
 </details>
 
-`cpp <code>` - G++ Compiler 
+`cpp <code>` - G++ 6.3.0
 <details>
 <summary>Example</summary>
 
