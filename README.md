@@ -76,7 +76,7 @@ When a user enters a new command or edit a previous one it will kill the previou
 
 #### Commands:
 
-`sh <code>` - Standard /bin/sh
+`sh <code>` _-_ Standard /bin/sh
 <details>
 <summary>Example</summary>
 
@@ -85,7 +85,7 @@ echo Hello from /bin/sh
 ```
 </details>
 
-`bash <code>` - Standard /bin/bash
+`bash <code>` _-_ Standard /bin/bash
 <details>
 <summary>Example</summary>
 
@@ -94,7 +94,7 @@ echo Hello from /bin/bash
 ```
 </details>
 
-`arm <code>` - ARM Assembly
+`arm <code>` _-_ ARM Assembly
 <details>
 <summary>Example</summary>
 
@@ -112,8 +112,9 @@ hello_text:
 ```
 </details>
 
+`x86 <code>` _-_ x86_64 Assembly
 <details>
-<summary>`x86 <code>` - x86_64 Assembly</summary>
+<summary>Example</summary>
 
 ```asm
 .intel_syntax noprefix
