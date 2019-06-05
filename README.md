@@ -248,8 +248,8 @@ public class Tangent {
 <summary>Example</summary>
 
 ```lisp
-(format t "Hello from Lisp")```
-
+(format t "Hello from Lisp")
+```
 </details>
 
 `bf <code>` - Brainfuck
