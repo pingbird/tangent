@@ -84,6 +84,7 @@ When a user enters a new command or edit a previous one it will kill the previou
 echo Hello from /bin/sh
 ```
 </details>
+
 `bash <code>` - Standard /bin/bash
 <details>
 <summary>Example</summary>
@@ -92,6 +93,7 @@ echo Hello from /bin/sh
 echo Hello from /bin/bash
 ```
 </details>
+
 `arm <code>` - ARM Assembly
 <details>
 <summary>Example</summary>
@@ -109,6 +111,7 @@ hello_text:
     .string "Hello from ARM\n"
 ```
 </details>
+
 `x86 <code>` - x86_64 Assembly
 <details>
 <summary>Example</summary>
