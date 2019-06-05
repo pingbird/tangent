@@ -76,7 +76,6 @@ When a user enters a new command or edit a previous one it will kill the previou
 
 Commands:
 `sh <code>` - Standard /bin/sh
-
 <details>
 <summary>Example</summary>
 
@@ -84,3 +83,4 @@ Commands:
 echo Hello from /bin/sh
 ```
 </details>
+
