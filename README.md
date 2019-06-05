@@ -317,13 +317,6 @@ PROCEDURE DIVISION.
 ```
 </details>
 
-` <code>` - 
-<details>
-<summary>Example</summary>
-
-
-</details>
-
 `go <code>` - Go 1.7.4
 <details>
 <summary>Example</summary>
@@ -589,7 +582,7 @@ BEGIN { print "Hello from AWK" }
 ```
 </details>
 
-`tibasic <code>` - Limited TI-BASIC interpreter from (https://github.com/patrickfeltes/ti-basic-interpreter/)[patrickfeltes/ti-basic-interpreter]
+`tibasic <code>` - Limited TI-BASIC interpreter from [patrickfeltes/ti-basic-interpreter](https://github.com/patrickfeltes/ti-basic-interpreter/)
 <details>
 <summary>Example</summary>
 
