@@ -305,7 +305,7 @@ class QEmuModule extends TangentModule {
   @Command(alias: ["js", "node"])
   js(CommandArgs args) => TaskBuilder(q, args)
     .save("tangent.js")
-    .run("js", ["tangent.js"]).done();
+    .run("js", ["-p"], false, true).done();
 
   @Command(alias: ["perl", "pl"])
   perl(CommandArgs args) => TaskBuilder(q, args)
