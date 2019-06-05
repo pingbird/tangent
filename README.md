@@ -30,12 +30,12 @@ Currently there are 3 command prefixes for convenience:
 Any of these prefixes can be used to execute commands
 
 ### Misc commands
-`purge <n>` - Purges a number of messages [admin only]
+`purge <n>` - Purges a number of messages *(admin only)*
 
 ### Managment
-`qstart` - Start the VM *[trusted only]*\
-`qrestart` - Restart the VM *[trusted only]*\
-`qclean` - Revert the VM state to a clean snapshot *[trusted only]*
+`qstart` - Start the VM *(trusted only)*\
+`qrestart` - Restart the VM *(trusted only)*\
+`qclean` - Revert the VM state to a clean snapshot *(trusted only)*
 
 ### Upload / Download
 `upload [file/dir]` - Upload an attachment to the VM at the specified directory or file name, defaults to the home directory\
