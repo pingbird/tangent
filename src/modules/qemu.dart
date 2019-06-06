@@ -464,7 +464,7 @@ class QEmuModule extends TangentModule {
 
   @Command()
   swift(CommandArgs args) => TaskBuilder(q, args)
-    .save("tangent.scala")
+    .save("tangent.swift")
     .run("bash", ["-c", "source /opt/Tangent/swiftSetup.sh && swift tangent.swift"]).done();
 
   @Command()
