@@ -10,6 +10,8 @@ environment:
 dependencies:
   async: any
   tuple: any
+  yaml: any
+  dartis: ^0.3.0
   nyxx:
     path: '../nyxx'
   msgpack2: ^2.0.0+1

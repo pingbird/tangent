@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../main.dart';
 import 'commands.dart';
 
@@ -390,6 +392,8 @@ Exp parse(String inp, bool verbose) {
 }
 
 class LambdaModule extends TangentModule {
+  var g = GlobalState();
+  init() async {
 
-
+  }
 }

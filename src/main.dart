@@ -10,6 +10,8 @@ import 'dart:mirrors' as mirrors;
 import 'package:vm_service_lib/vm_service_lib.dart' as vm;
 import 'package:vm_service_lib/vm_service_lib_io.dart' as vm;
 import 'dart:developer' as dev;
+import 'package:yaml/yaml.dart';
+import 'package:dartis/dartis.dart' as redis;
 
 class TangentMsg {
   TangentMsg(this.id, this.m);
@@ -41,6 +43,7 @@ abstract class TangentModule {
 }
 
 ds.Nyxx nyxx;
+redis.Client rclient;
 
 Set<TangentModule> modules;
 
@@ -49,9 +52,48 @@ T getModule<T extends TangentModule>() {
   return null;
 }
 
+String instanceName;
+dynamic instanceData;
+
 void main(List<String> args) async {
+  if (args.isEmpty) throw "Instance name expected";
+  instanceName = args.first;
+  instanceData = loadYaml(await File("tokens/conf.yaml").readAsString())[args.first];
+
   await runZoned(() async {
     configureNyxxForVM();
+
+    // Connect to Redis //
+
+    if (instanceData["redis"] != null) {
+      var rd = instanceData["redis"];
+      var uri = Uri.parse(rd["uri"].toString());
+
+      Socket sk;
+      try {
+        sk = await Socket.connect(uri.host, uri.port);
+      } on SocketException catch (e) { // Server is down
+        var rserver = await Process.start("redis-server", [
+          "--daemonize", "yes",
+          "--bind", "127.0.0.1",
+          "--port", uri.port.toString(),
+          "--protected-mode", "yes",
+          "--appendonly", "yes",
+          "--appendfsync", "everysec",
+          "--save", "60", "1",
+          "--dbfilename", "$instanceName.rdb",
+          "--dir", "./db",
+        ]);
+        rserver.stdout.listen(stdout.add);
+        rserver.stderr.listen(stderr.add);
+        await Future.delayed(Duration(seconds: 2));
+        sk = await Socket.connect(uri.host, uri.port);
+      }
+
+      rclient = await redis.Client(redis.Connection(sk));
+    }
+
+    // Connect to VM service //
 
     bool _sw(String s) {
       return Platform.executableArguments.any((ss) => ss.startsWith(s));
@@ -96,10 +138,9 @@ void main(List<String> args) async {
 
     Future reloadModules() async {
       var tm = mirrors.reflectClass(TangentModule);
-      await for (var f in Directory("src/modules").list()) {
-        if (!f.path.endsWith(".dart") || await FileSystemEntity.type(f.absolute.path) != FileSystemEntityType.file) continue;
-        var uri = Uri.parse("modules/${f.uri.pathSegments.skip(2).join("/")}");
-        print("Loading $uri");
+      for (var mn in (instanceData["modules"] as YamlList).map((d) => d.toString())) {
+        var uri = Uri.parse("modules/$mn.dart");
+        print("Loading module $uri");
         var lib = await mirrors.currentMirrorSystem().isolate.loadUri(uri);
         for (var decl in lib.declarations.values) {
           if (decl is mirrors.ClassMirror && decl.isSubclassOf(tm) && decl != tm) {
@@ -137,7 +178,7 @@ void main(List<String> args) async {
 
     print("Connecting...");
 
-    nyxx = ds.Nyxx((await File("tokens/discord.txt").readAsString()).trim(), ignoreExceptions: false);
+    nyxx = ds.Nyxx(instanceData["token"], ignoreExceptions: false);
 
     nyxx.onReady.listen((ev) {
       modules.forEach((m) => m.onReady());

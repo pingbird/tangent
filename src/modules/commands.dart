@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:yaml/yaml.dart';
+
 import '../main.dart';
 import '../common.dart';
 import 'package:nyxx/nyxx.dart' as ds;
@@ -208,9 +210,10 @@ class CommandsModule extends TangentModule {
 
     if (!userAdmin && msg.m.channel.id.id.toString() != botChannel) return;
 
-    var prefixes = [
-      ".", "α", "<@!${nyxx.self.id}>", "<@${nyxx.self.id}>",
-    ];
+    var prefixes = (instanceData["prefixes"] as YamlList).map((d) => d.toString()).toList();
+    prefixes.addAll([
+      "<@!${nyxx.self.id}>", "<@${nyxx.self.id}>",
+    ]);
 
     var text = msg.m.content.trim();
 
