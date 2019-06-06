@@ -504,6 +504,16 @@ object Tangent {
 ```
 </details>
 
+`swift <code>` - Swift 4.1
+<details>
+<summary>Example</summary>
+
+```swift
+import Swift
+print("Hello from Swift")```
+```
+</details>
+
 `typescript <code>` - Typescript 2.1.5 on Node.JS v4.8.2
 <details>
 <summary>Example</summary>
