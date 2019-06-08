@@ -24,3 +24,4 @@ dev_dependencies:
   pedantic: any
   test: any
   source_gen: any
+  build_runner: any

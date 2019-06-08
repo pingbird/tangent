@@ -31,8 +31,7 @@ class QEmuModule extends TangentModule {
   }
 
   @Command(trusted: true) qdebug(CommandArgs args) async {
-    args.res.writeln("[${q.connectionStateDbg}]");
-    return args.res.close();
+    return "[${q.connectionStateDbg}]";
   }
 
   @Command(trusted: true) qclean(CommandArgs args) async {
@@ -40,7 +39,6 @@ class QEmuModule extends TangentModule {
     var r = await q.runBasic("sudo virsh snapshot-revert tangent clean");
     args.res.writeln(((r.stdout as String) + r.stderr).trim());
     args.res.writeln("Done!");
-    return args.res.close();
   }
 
   @Command(trusted: true) qstart(CommandArgs args) async {
@@ -48,8 +46,7 @@ class QEmuModule extends TangentModule {
     var r = await q.runBasic("sudo virsh start tangent");
     args.res.writeln(((r.stdout as String) + r.stderr).trim());
     if (r.exitCode != 0) {
-      args.res.writeln("virsh finished with exit code ${r.exitCode}");
-      return args.res.close();
+      return "virsh finished with exit code ${r.exitCode}";
     }
 
     if (q.serviceSocket != null) {
@@ -60,8 +57,6 @@ class QEmuModule extends TangentModule {
     args.res.writeln("Started, waiting for server to come online...");
     await q.serviceConnect.future;
     args.res.writeln("Done!");
-
-    return args.res.close();
   }
 
   @Command(trusted: true) qrestart(CommandArgs args) async {
@@ -69,8 +64,7 @@ class QEmuModule extends TangentModule {
     var r = await q.runBasic("sudo virsh reboot tangent");
     args.res.writeln(((r.stdout as String) + r.stderr).trim());
     if (r.exitCode != 0) {
-      args.res.writeln("virsh finished with exit code ${r.exitCode}");
-      return args.res.close();
+      return "virsh finished with exit code ${r.exitCode}";
     }
 
     if (q.serviceSocket != null) {
@@ -81,8 +75,6 @@ class QEmuModule extends TangentModule {
     args.res.writeln("Restarted, waiting for server to come back...");
     await q.serviceConnect.future;
     args.res.writeln("Done!");
-
-    return args.res.close();
   }
 
   @Command() upload(CommandArgs args) async {
@@ -93,8 +85,7 @@ class QEmuModule extends TangentModule {
       target = "/home/kek/";
     } else {
       if (ap.list.length > 1) {
-        args.res.writeln("Error: one argument expected (got ${ap.list.length}");
-        return args.res.close();
+        return "Error: one argument expected (got ${ap.list.length}";
       }
       target = ap.list.first;
     }
@@ -104,11 +95,9 @@ class QEmuModule extends TangentModule {
     var attach = args.msg.m.attachments?.values;
 
     if (attach == null || attach.isEmpty) {
-      args.res.writeln("Error: attachment expected");
-      return args.res.close();
+      return "Error: attachment expected";
     } else if (attach.length > 1) {
-      args.res.writeln("Error: one attachment expected");
-      return args.res.close();
+      return "Error: one attachment expected";
     }
 
     var a = attach.first;
@@ -163,18 +152,15 @@ class QEmuModule extends TangentModule {
     args.res.set(s);
     var t = DateTime.now().millisecondsSinceEpoch;
     args.res.writeln("`[Done! ${sizeToString((1000 * bytes / (t - startTu)).round())}/s]`");
-    return args.res.close();
   }
 
   @Command() download(CommandArgs args) async {
     var ap = ArgParse(args.text, parseFlags: false);
 
     if (ap.list.isEmpty) {
-      args.res.writeln("Error: file name expected");
-      return args.res.close();
+      return "Error: file name expected";
     } else if (ap.list.length > 1) {
-      args.res.writeln("Error: one argument expected (got ${ap.list.length}");
-      return args.res.close();
+      return "Error: one argument expected (got ${ap.list.length}";
     }
 
     var target = ap.list.first;
@@ -224,8 +210,6 @@ class QEmuModule extends TangentModule {
     await args.res.invokeMsg.channel.send(files: [
       ds.AttachmentBuilder.bytes(bytes, fn),
     ]);
-
-    return args.res.close();
   }
 
   @Command()

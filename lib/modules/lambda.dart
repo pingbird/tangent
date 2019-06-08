@@ -31,7 +31,6 @@ class LambdaModule extends TangentModule {
   }
 
   @Command() l(CommandArgs args) async {
-    print("parsing...");
     var e = await parseSafe("~\\\"stdlib.lf\"\n${args.text}");
     if (e == null) throw "Parse timed out";
     var o = await reduceSafe(e);

@@ -29,8 +29,8 @@ class TangentMsg {
   ds.MessageChannel get channel => m.channel;
   Future<ds.Message> reply(dynamic value) {
     var text = "$value";
-    if (text.length > 1900) {
-      text = text.substring(0, 1900) + "...";
+    if (text.length > 2000) {
+      text = text.substring(0, 2000);
     }
 
     if (m.channel is ds.TextChannel) {

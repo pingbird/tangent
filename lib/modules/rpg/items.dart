@@ -6,29 +6,6 @@ typedef ItemInfo ItemInfoGetter(Item item);
 typedef String _ToString();
 typedef bool _Merger(Item a, Item b);
 
-ItemInfoGetter itemInfoGetter(String name, {String plural, String emoji, String stacksWith, String category, bool stacks, _ToString print, _Merger merger}) {
-  return (Item item) {
-    return new ItemInfo(
-      name: name,
-      plural: plural,
-      emoji: emoji,
-      stacksWith: stacksWith,
-      category: category,
-      stacks: stacks ?? true,
-      print: print ?? () {
-        var emj = emoji == null ? "" : " ${
-            emoji.startsWith("<") ? emoji : ":$emoji:"
-        }";
-        return (stacks ? fancyNum(item.count.toDouble()) + " " + (plural != null && (item.count > 1 || item.count < -1) ? plural : name) : name) + emj;
-      },
-      merger: merger ?? (a, b) {
-        a.count += b.count;
-        return true;
-      },
-    );
-  };
-}
-
 class ItemInfo {
   ItemInfo({this.name, this.plural, this.emoji, this.stacksWith, this.category, this.stacks, this.print, this.merger});
   String name;
@@ -45,12 +22,42 @@ class ItemInfo {
 class ItemContext {
   Map<String, ItemInfoGetter> itemInfo = {};
 
+  void registerGetter(String id, ItemInfoGetter getter) {
+    itemInfo[id] = getter;
+  }
+
+  void register(String id, {String name, String plural, String emoji, bool stacks, String stacksWith, String category, _ToString print, _Merger merger}) {
+    name ??= id;
+    itemInfo[id] = (Item item) {
+      return new ItemInfo(
+        name: name,
+        plural: plural,
+        emoji: emoji,
+        stacksWith: stacksWith,
+        category: category,
+        stacks: stacks ?? true,
+        print: print ?? () {
+          var emj = emoji == null ? "" : " ${
+              emoji.startsWith("<") ? emoji : ":$emoji:"
+          }";
+          return (stacks ? fancyNum(item.count.toDouble()) + " " + (plural != null && (item.count > 1 || item.count < -1) ? plural : name) : name) + emj;
+        },
+        merger: merger ?? (a, b) {
+          a.count += b.count;
+          return true;
+        },
+      );
+    };
+  }
+
   ItemInfo get(Item i) {
-    if (!itemInfo.containsKey(i.id)) return itemInfoGetter(
-      "\\_${i.id}\\_",
+    if (!itemInfo.containsKey(i.id)) register(
+      i.id,
+      name: "\\_${i.id}\\_",
       emoji: "x",
       stacks: true,
-    )(i);
+    );
+
     return itemInfo[i.id](i);
   }
 }
@@ -99,7 +106,7 @@ class ItemDelta {
     d.items.forEach(addItem);
   }
 
-  void apply(Entity e) {
+  void apply(Player e) {
     for (var x in items) {
       var xInfo = ctx.get(x);
       bool added = false;
@@ -117,6 +124,7 @@ class ItemDelta {
       }
       if (!added) e.items.add(x);
     }
+    e.save();
   }
 
   toString() => items.map((i) => (i.count > 0 ? "+" : "") + i.toString()).join(", ");
