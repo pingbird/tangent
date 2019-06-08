@@ -183,13 +183,13 @@ class CommandArgs {
 }
 
 abstract class CmdInit {
-  void initCmd(CommandsModule mod);
+  dynamic initCmd(CommandsModule mod);
 }
 
 class CommandsModule extends TangentModule {
   Map<String, CommandEntry> commands;
 
-  void loadCommands(dynamic m) {
+  Future loadCommands(dynamic m) async {
     var mod = mirrors.reflect(m);
     var modType = mirrors.reflectClass(m.runtimeType);
     for (var decl in modType.declarations.values) {
@@ -207,12 +207,12 @@ class CommandsModule extends TangentModule {
       }
     }
 
-    if (m is CmdInit) m.initCmd(this);
+    if (m is CmdInit) await m.initCmd(this);
   }
 
   @override init() async {
     commands = {};
-    for (var m in tangent.modules) loadCommands(m);
+    for (var m in tangent.modules) await loadCommands(m);
   }
 
   @override onReady() {}
@@ -221,6 +221,7 @@ class CommandsModule extends TangentModule {
   Map<ds.Snowflake, CommandRes> userResponses = {};
 
   Future invokeMsg(TangentMsg msg, {CommandRes res}) async {
+    if (msg.m.author.bot) return;
     if (msg.m.channel is! ds.TextChannel) return;
     var channel = msg.m.channel as ds.TextChannel;
     if (channel.guild.id.id.toString() != "368249740120424449") return;
@@ -230,7 +231,7 @@ class CommandsModule extends TangentModule {
     var adminRole = "368249923222634496";
     ds.Member u = msg.m.author;
     bool userTrusted = u.roles.any((e) => e.id.id.toString() == trustedRole);
-    bool userAdmin = u.roles.any((e) => e.id.id.toString() == trustedRole);
+    bool userAdmin = u.roles.any((e) => e.id.id.toString() == adminRole);
 
     if (!userAdmin && msg.m.channel.id.id.toString() != botChannel) return;
 
@@ -273,11 +274,15 @@ class CommandsModule extends TangentModule {
 
       userResponses[msg.m.author.id] = res;
       try {
-        await commands[name].cb(CommandArgs(msg, res, text.substring(idx), args));
-      } catch (e) {
+        var cr = await commands[name].cb(CommandArgs(msg, res, text.substring(idx), args));
+        if (cr != null) {
+          res.writeln(cr);
+        }
+      } catch (e, bt) {
         res.writeln("Error: $e");
-        await res.close();
-        rethrow;
+        stderr.writeln("/// Command Error ///");
+        stderr.writeln(e);
+        stderr.writeln(bt);
       }
       await res.close();
     }
@@ -314,6 +319,10 @@ class CommandsModule extends TangentModule {
         }
       }
     }
+  }
+
+  @Command() help(CommandArgs args) {
+    return "A list of commands can be found at https://github.com/PixelToast/tangent/";
   }
 
   @override unload() async {
