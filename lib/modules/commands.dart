@@ -20,10 +20,11 @@ class CommandEntry {
 }
 
 class Command {
-  const Command({this.alias, this.trusted = false, this.admin = false});
+  const Command({this.alias, this.trusted = false, this.admin = false, this.canPing = false});
   final List<String> alias;
   final bool trusted;
   final bool admin;
+  final bool canPing;
 }
 
 typedef void _OnMessageCreate(ds.Message message);
@@ -31,12 +32,14 @@ typedef void _OnMessageCreate(ds.Message message);
 class CommandRes extends BasicStringSink implements StreamSink<List<int>>, StringSink {
   TangentMsg invokeMsg;
   _OnMessageCreate onCreate;
-  CommandRes(this.invokeMsg, this.onCreate);
+  bool canPing;
+
+  CommandRes(this.invokeMsg, this.onCreate, this.canPing);
 
   Future<CommandRes> replace() async {
     cancel();
     if (flushing) await lastFlush?.future;
-    return CommandRes(invokeMsg, onCreate)..message = message;
+    return CommandRes(invokeMsg, onCreate, canPing)..message = message;
   }
 
   var cancelled = Completer<Null>();
@@ -72,6 +75,10 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
           throttle = max(0, throttle - (time - lastMessage));
         if (throttle != 0) await Future.delayed(
             Duration(milliseconds: throttle));
+      }
+
+      if (!canPing) {
+        messageText = messageText.replaceAllMapped(RegExp(r'<@(\d+)>'), (m) => "<@!${m.group(1)}>");
       }
 
       if (messageText.length > 2000) {
@@ -248,7 +255,7 @@ class CommandsModule extends TangentModule {
 
       res ??= CommandRes(msg, (rmsg) {
         responses[rmsg.id] = res;
-      });
+      }, c.meta.canPing);
 
       if (userResponses.containsKey(msg.m.author.id)) {
         var pmsg = userResponses[msg.m.author.id];
