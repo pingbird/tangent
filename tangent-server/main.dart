@@ -14,6 +14,7 @@ main() async {
     void cleanup() {
       for (var proc in p.values) proc.kill(ProcessSignal.sigkill);
       for (var f in files.values) f.close();
+      cl.destroy();
     }
 
     await runZoned(() async {

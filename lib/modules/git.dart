@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:nyxx/nyxx.dart';
 
-import '../main.dart';
+import 'package:tangent/base.dart';
+import 'package:tangent/common.dart';
+import 'package:tangent/modules/commands.dart';
 
 class GitModule extends TangentModule {
   WebSocket ws;
@@ -43,7 +45,7 @@ class GitModule extends TangentModule {
   }
 
   onReady() async {
-    TextChannel ch = await nyxx.getChannel(Snowflake("583480062993629194"));
+    TextChannel ch = await tangent.nyxx.getChannel(Snowflake("583480062993629194"));
     await for (var ev in events.stream) {
       try {
         if (ev["event-type"] == "push") {

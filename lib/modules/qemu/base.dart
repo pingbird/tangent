@@ -8,10 +8,10 @@ import 'package:async/async.dart';
 import 'package:tuple/tuple.dart';
 import 'package:nyxx/nyxx.dart' as ds;
 
-import '../main.dart';
-import '../common.dart';
-import 'commands.dart';
-import 'qemu/base.dart';
+import 'package:tangent/base.dart';
+import 'package:tangent/common.dart';
+import 'package:tangent/modules/commands.dart';
+import 'controller.dart';
 
 class QEmuModule extends TangentModule {
   QCtrl q;
@@ -86,7 +86,7 @@ class QEmuModule extends TangentModule {
   }
 
   @Command() upload(CommandArgs args) async {
-    var ap = ArgParse(args.argText, parseFlags: false);
+    var ap = ArgParse(args.text, parseFlags: false);
     String target;
 
     if (ap.list.isEmpty) {
@@ -167,7 +167,7 @@ class QEmuModule extends TangentModule {
   }
 
   @Command() download(CommandArgs args) async {
-    var ap = ArgParse(args.argText, parseFlags: false);
+    var ap = ArgParse(args.text, parseFlags: false);
 
     if (ap.list.isEmpty) {
       args.res.writeln("Error: file name expected");

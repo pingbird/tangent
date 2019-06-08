@@ -2,12 +2,13 @@ import 'dart:math';
 
 import 'package:nyxx/nyxx.dart' as ds;
 
-import '../main.dart';
-import 'commands.dart';
+import 'package:tangent/base.dart';
+import 'package:tangent/common.dart';
+import 'package:tangent/modules/commands.dart';
 
 class MiscModule extends TangentModule {
   @Command() echo(CommandArgs args) {
-    args.res.writeln(args.argText);
+    args.res.writeln(args.text);
   }
 
   @Command(admin: true) purge(CommandArgs args) async {

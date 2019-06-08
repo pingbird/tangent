@@ -5,8 +5,9 @@ import 'dart:math';
 
 import 'package:yaml/yaml.dart';
 
-import '../main.dart';
-import '../common.dart';
+import 'package:tangent/base.dart';
+import 'package:tangent/common.dart';
+import 'package:tangent/modules/commands.dart';
 import 'package:nyxx/nyxx.dart' as ds;
 import 'dart:mirrors' as mirrors;
 
@@ -128,17 +129,17 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
 }
 
 class CommandArgs {
-  CommandArgs(this.msg, this.res, this.argText, this.args);
+  CommandArgs(this.msg, this.res, this.text, this.list);
   TangentMsg msg;
   CommandRes res;
-  String argText;
+  String text;
 
   int idx = 0;
-  List<String> args;
+  List<String> list;
 
   int expectInt() {
-    if (idx == args.length) throw "Integer expected";
-    var e = args[idx++];
+    if (idx == list.length) throw "Integer expected";
+    var e = list[idx++];
     return int.tryParse(e) ?? (throw "Integer expected");
   }
 
@@ -149,46 +150,54 @@ class CommandArgs {
   }
 
   num expectNum() {
-    if (idx == args.length) throw "Number expected";
-    var e = args[idx++];
+    if (idx == list.length) throw "Number expected";
+    var e = list[idx++];
     return num.tryParse(e) ?? (throw "Number expected");
   }
 
   String expectString() {
-    if (idx == args.length) throw "String expected";
-    return args[idx++];
+    if (idx == list.length) throw "String expected";
+    return list[idx++];
   }
 
   void expectNone() {
-    if (idx != args.length) throw "Too many arguments";
+    if (idx != list.length) throw "Too many arguments";
   }
 
   Future<Null> get onCancel => res.cancelled.future;
 }
 
+abstract class CmdInit {
+  void initCmd(CommandsModule mod);
+}
+
 class CommandsModule extends TangentModule {
   Map<String, CommandEntry> commands;
 
-  @override init() async {
-    commands = {};
-    for (var m in modules) {
-      var mod = mirrors.reflect(m);
-      var modType = mirrors.reflectClass(m.runtimeType);
-      for (var decl in modType.declarations.values) {
-        if (decl is mirrors.MethodMirror) for (var meta in decl.metadata) {
-          var r = meta.reflectee;
-          if (r is Command) {
-            List<String> alias;
-            if (r.alias == null) {
-              alias = [mirrors.MirrorSystem.getName(decl.simpleName)];
-            } else alias = r.alias;
-            CommandHandler cb = mod.getField(decl.simpleName).reflectee;
-            for (var n in alias) commands[n] = CommandEntry(r, cb);
-            break;
-          }
+  void loadCommands(dynamic m) {
+    var mod = mirrors.reflect(m);
+    var modType = mirrors.reflectClass(m.runtimeType);
+    for (var decl in modType.declarations.values) {
+      if (decl is mirrors.MethodMirror) for (var meta in decl.metadata) {
+        var r = meta.reflectee;
+        if (r is Command) {
+          List<String> alias;
+          if (r.alias == null) {
+            alias = [mirrors.MirrorSystem.getName(decl.simpleName)];
+          } else alias = r.alias;
+          CommandHandler cb = mod.getField(decl.simpleName).reflectee;
+          for (var n in alias) commands[n] = CommandEntry(r, cb);
+          break;
         }
       }
     }
+
+    if (m is CmdInit) m.initCmd(this);
+  }
+
+  @override init() async {
+    commands = {};
+    for (var m in tangent.modules) loadCommands(m);
   }
 
   @override onReady() {}
@@ -196,7 +205,7 @@ class CommandsModule extends TangentModule {
   Map<ds.Snowflake, CommandRes> responses = {};
   Map<ds.Snowflake, CommandRes> userResponses = {};
 
-  Future invoke(TangentMsg msg, {CommandRes res}) async {
+  Future invokeMsg(TangentMsg msg, {CommandRes res}) async {
     if (msg.m.channel is! ds.TextChannel) return;
     var channel = msg.m.channel as ds.TextChannel;
     if (channel.guild.id.id.toString() != "368249740120424449") return;
@@ -210,9 +219,9 @@ class CommandsModule extends TangentModule {
 
     if (!userAdmin && msg.m.channel.id.id.toString() != botChannel) return;
 
-    var prefixes = (instanceData["prefixes"] as YamlList).map((d) => d.toString()).toList();
+    var prefixes = (tangent.data["prefixes"] as YamlList).map((d) => d.toString()).toList();
     prefixes.addAll([
-      "<@!${nyxx.self.id}>", "<@${nyxx.self.id}>",
+      "<@!${tangent.nyxx.self.id}>", "<@${tangent.nyxx.self.id}>",
     ]);
 
     var text = msg.m.content.trim();
@@ -259,13 +268,13 @@ class CommandsModule extends TangentModule {
     }
   }
 
-  @override onMessage(TangentMsg msg) => invoke(msg);
+  @override onMessage(TangentMsg msg) => invokeMsg(msg);
 
   @override onMessageUpdate(TangentMsg oldMsg, TangentMsg msg) async {
     if (userResponses.containsKey(msg.m.author.id)) {
       var res = userResponses[msg.m.author.id];
       if (msg.m.id != res.invokeMsg.m.id) return;
-      await invoke(msg, res: await res.replace());
+      await invokeMsg(msg, res: await res.replace());
     }
   }
 

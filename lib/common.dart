@@ -1,5 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
+import 'dart:mirrors' as mirrors;
+
+import 'package:dartis/dartis.dart' as redis;
+import 'package:tuple/tuple.dart';
 
 abstract class BasicStringSink implements StreamSink<List<int>>, StringSink {
   void write(Object obj) {
@@ -260,4 +265,130 @@ String sizeToString(int bytes, [int frac = 1]) {
 
   n / 1024;
   return "${n.toStringAsFixed(frac)}YB";
+}
+
+const _rt = const <String, double>{
+  "millisecond": 0.001,
+  "second": 1.0,
+  "minute": 60.0,
+  "hour": 3600.0,
+  "day": 86400.0,
+  "week": 604800.0,
+  "month": 2629800.0,
+};
+
+const _wt = const <String, int>{
+  "millisecond": 1000,
+  "second": 60,
+  "minute": 60,
+  "hour": 24,
+  "day": 7,
+  "week": 7,
+  "month": 12,
+};
+
+String toTime(double s) {
+  if (s == double.infinity) return "never";
+  if (s == double.negativeInfinity) return "forever ago";
+  if (s == double.nan) return "unknown";
+
+  var sr = "";
+  if (s < 0) {
+    sr = " ago";
+    s = s.abs();
+  }
+
+  String c(String n) {
+    var t = (s / _rt[n]).floor() % _wt[n];
+    return "$t $n${t > 1 ? "s" : ""}";
+  }
+
+  if (s < 1) {
+    return "${c("millisecond")}$sr";
+  } else if (s < 60) {
+    return "${c("second")}$sr";
+  } else if (s < 3600) {
+    if (s / 60 < 5) {
+      return "${c("minute")} ${c("second")}$sr";
+    }
+    return "${c("minute")}$sr";
+  } else if (s < 86400) {
+    return "${c("hour")} ${c("minute")}$sr";
+  } else if (s < 86400) {
+    return "${c("hour")} ${c("minute")}$sr";
+  } else if (s < 604800) {
+    return "${c("day")} ${c("hour")}$sr";
+  } else if (s < 2629800) {
+    return "${c("week")} ${c("day")}$sr";
+  } else {
+    return "${c("month")}$sr";
+  }
+}
+
+String fancyNum(double num) {
+  var nnn = num.abs().toString();
+  var ndn = num.abs().floor().toString();
+  var o = (num < 0 ? "-" : "") + ndn.split("").reversed.join()
+    .replaceAllMapped(new RegExp(r"..."), (m) => m.group(0) + ",")
+    .split("").reversed.join().replaceFirst(new RegExp("^,"), "") + nnn.split("").skipWhile((c) => c != ".").join();
+  return o.replaceAll(new RegExp(r"\.0$"), "");
+}
+
+Stream<T> redisScanList<T>(redis.Client cl, dynamic pattern, int count) async* {
+  var cursor = 0;
+  while (true) {
+    var res = await cl.asCommands<T, dynamic>().scan(cursor, pattern: pattern);
+    yield* Stream.fromIterable(res.keys);
+    cursor = res.cursor;
+    if (cursor == 0) break;
+  }
+}
+
+Stream<T> redisScanHash<T>(redis.Client cl, dynamic pattern, int count) async* {
+  var cursor = 0;
+  while (true) {
+    var res = await cl.asCommands<T, dynamic>().scan(cursor, pattern: pattern);
+    yield* Stream.fromIterable(res.keys);
+    cursor = res.cursor;
+    if (cursor == 0) break;
+  }
+}
+
+typedef T _RunTimeFunc<T, X>(X x);
+
+class _RunTimeObj<T, X> {
+  _RunTimeObj(this.x, this.func, this.sp, this.spErr);
+  X x;
+  _RunTimeFunc<T, X> func;
+  SendPort sp;
+  SendPort spErr;
+}
+
+void _runTimeIso(dynamic ob) async {
+  _RunTimeObj obj = ob;
+  try {
+    obj.sp.send(await ob.func(obj.x));
+  } catch (e, bt) {
+    obj.spErr.send(Tuple2(e.toString(), bt.toString()));
+  }
+  print("potato");
+}
+
+Future<T> runTimeLimit<T, X>(Future<T> func(X x), X message, int ms) async {
+  print("runTimeLimit");
+  var rp = ReceivePort();
+  var rpErr = ReceivePort();
+  var iso = await Isolate.spawn(_runTimeIso, _RunTimeObj(message, func, rp.sendPort, rpErr.sendPort));
+  print("started iso");
+
+  var o = await Future.any([
+    rp.first,
+    Future.delayed(Duration(milliseconds: ms)),
+    rpErr.first.then((d) => Future.error(d.item1, StackTrace.fromString(d.item2))),
+  ]);
+
+  print("done waiting $o");
+
+  iso.kill();
+  return o;
 }

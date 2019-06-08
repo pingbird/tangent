@@ -9,9 +9,9 @@ import 'package:async/async.dart';
 import 'package:tuple/tuple.dart';
 import 'package:nyxx/nyxx.dart' as ds;
 
-import '../../main.dart';
-import '../../common.dart';
-import '../commands.dart';
+import 'package:tangent/base.dart';
+import 'package:tangent/common.dart';
+import 'package:tangent/modules/commands.dart';
 
 class QProc extends BasicStringSink {
   QProc(this.module, this.id, this.pid);
@@ -418,7 +418,7 @@ class _RunTask extends _Task {
 
 class TaskBuilder {
   TaskBuilder(this.q, CommandArgs args, {bool trimCode = false}) {
-    code = args.argText;
+    code = args.text;
     res = args.res;
 
     var m = RegExp(r"^([\S\s]+?)?```\w*([\S\s]+)```([\S\s]+)?$", multiLine: true).firstMatch(code);
