@@ -77,19 +77,27 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
             Duration(milliseconds: throttle));
       }
 
-      if (!canPing) {
-        messageText = messageText.replaceAllMapped(RegExp(r'<@(\d+)>'), (m) => "<@!${m.group(1)}>");
-      }
-
       if (messageText.length > 2000) {
         messageText = messageText.substring(
             messageText.length - 2000, messageText.length);
       }
 
       dirty = false;
-      if (messageText != "" && !deleted) {
+      if (messageText.trim() != "" && !deleted) {
         if (message == null) {
-          message = await invokeMsg.reply(messageText);
+          bool containsPing = false;
+          if (!canPing) {
+            containsPing = messageText.contains(RegExp(r'<@(\d+)>'));
+          }
+
+          if (containsPing) {
+            message = await invokeMsg.reply(Utf8Codec().decode([226, 128, 139]));
+            await message.edit(content: messageText);
+          } else {
+            message = await invokeMsg.reply(messageText);
+          }
+
+
           onCreate(message);
         } else {
           await message.edit(content: messageText);
