@@ -12,6 +12,7 @@ dependencies:
   tuple: any
   yaml: any
   dartis: any
+  pointycastle: any
   nyxx:
     path: '../nyxx'
   msgpack2: any

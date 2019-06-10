@@ -2,17 +2,18 @@ import 'package:tangent/modules/rpg/data.dart';
 import 'package:tangent/modules/rpg/base.dart';
 import 'package:tangent/common.dart';
 
-typedef ItemInfo ItemInfoGetter(Item item);
+typedef ItemDesc ItemDescGetter(Item item, {int count});
 typedef String _ToString();
 typedef bool _Merger(Item a, Item b);
 
-class ItemInfo {
-  ItemInfo({this.name, this.plural, this.emoji, this.stacksWith, this.category, this.stacks, this.print, this.merger});
+class ItemDesc {
+  ItemDesc({this.name, this.plural, this.emoji, this.stacksWith, this.category, this.verbose, this.stacks, this.print, this.merger});
   String name;
   String plural;
   String emoji;
   String stacksWith;
   String category;
+  bool verbose;
   _ToString print;
   _Merger merger;
   bool stacks = true;
@@ -20,27 +21,33 @@ class ItemInfo {
 }
 
 class ItemContext {
-  Map<String, ItemInfoGetter> itemInfo = {};
+  Map<String, ItemDescGetter> descs = {};
 
-  void registerGetter(String id, ItemInfoGetter getter) {
-    itemInfo[id] = getter;
+  void registerGetter(String id, ItemDescGetter getter) {
+    descs[id] = getter;
   }
 
-  void register(String id, {String name, String plural, String emoji, bool stacks, String stacksWith, String category, _ToString print, _Merger merger}) {
+  void register(String id, {String name, String plural, String emoji, bool stacks, String stacksWith, String category, bool verbose, _ToString print, _Merger merger}) {
     name ??= id;
-    itemInfo[id] = (Item item) {
-      return new ItemInfo(
+    descs[id] = (Item item, {int count}) {
+      count ??= item.count;
+      stacks ??= true;
+      verbose ??= false;
+      return new ItemDesc(
         name: name,
         plural: plural,
         emoji: emoji,
         stacksWith: stacksWith,
         category: category,
-        stacks: stacks ?? true,
+        stacks: stacks,
+        verbose: verbose,
         print: print ?? () {
           var emj = emoji == null ? "" : " ${
               emoji.startsWith("<") ? emoji : ":$emoji:"
           }";
-          return (stacks ? fancyNum(item.count.toDouble()) + " " + (plural != null && (item.count > 1 || item.count < -1) ? plural : name) : name) + emj;
+
+          if (!verbose && emj != "") return "${fancyNum(count)} $emj";
+          return (stacks ? fancyNum(count) + " " + (plural != null && (count > 1 || count < -1) ? plural : name) : name) + emj;
         },
         merger: merger ?? (a, b) {
           a.count += b.count;
@@ -50,15 +57,14 @@ class ItemContext {
     };
   }
 
-  ItemInfo get(Item i) {
-    if (!itemInfo.containsKey(i.id)) register(
+  ItemDesc get(Item i, {int count}) {
+    if (!descs.containsKey(i.id)) register(
       i.id,
       name: "\\_${i.id}\\_",
-      emoji: "x",
       stacks: true,
     );
 
-    return itemInfo[i.id](i);
+    return descs[i.id](i, count: count);
   }
 }
 
@@ -109,6 +115,19 @@ class ItemDelta {
   void apply(Player e) {
     for (var x in items) {
       var xInfo = ctx.get(x);
+      if (xInfo.stacks) {
+        for (var i in e.items.where((i) => i.id == x.id)) {
+          var iInfo = ctx.get(i);
+          var ni = Item.fromJson(i.toJson());
+          if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(ni, x)) {
+            if (ni.count < 0 && ni.count < i.count) throw "Not enough ${iInfo.plural}.";
+          }
+        }
+      }
+    }
+
+    for (var x in items) {
+      var xInfo = ctx.get(x);
       bool added = false;
       if (xInfo.stacks) {
         for (var i in e.items.where((i) => i.id == x.id)) {
@@ -127,5 +146,5 @@ class ItemDelta {
     e.save();
   }
 
-  toString() => items.map((i) => (i.count > 0 ? "+" : "") + i.toString()).join(", ");
+  toString() => items.map((i) => (i.count > 0 ? "+" : "") + ctx.get(i).toString()).join(", ");
 }

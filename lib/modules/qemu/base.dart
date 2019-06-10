@@ -125,7 +125,7 @@ class QEmuModule extends TangentModule {
     int startTu = DateTime.now().millisecondsSinceEpoch;
     int lastTu = DateTime.now().millisecondsSinceEpoch;
     int lastBts = 0;
-    var s = args.res.messageText;
+    var s = args.res.text;
 
     StreamSubscription<List<int>> sub;
     sub = p.stdout.listen((d) {
@@ -185,7 +185,7 @@ class QEmuModule extends TangentModule {
     int startTu = DateTime.now().millisecondsSinceEpoch;
     int lastTu = DateTime.now().millisecondsSinceEpoch;
     int lastBts = 0;
-    var s = args.res.messageText;
+    var s = args.res.text;
 
     await file.read(size).listen((d) {
       lastBts += d.length;

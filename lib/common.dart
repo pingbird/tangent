@@ -287,10 +287,12 @@ const _wt = const <String, int>{
   "month": 12,
 };
 
-String toTime(double s) {
+String toTime(num s) {
   if (s == double.infinity) return "never";
   if (s == double.negativeInfinity) return "forever ago";
   if (s == double.nan) return "unknown";
+
+  s /= 1000;
 
   var sr = "";
   if (s < 0) {
@@ -300,7 +302,7 @@ String toTime(double s) {
 
   String c(String n) {
     var t = (s / _rt[n]).floor() % _wt[n];
-    return "$t $n${t > 1 ? "s" : ""}";
+    return "$t $n${t != 1 ? "s" : ""}";
   }
 
   if (s < 1) {
@@ -308,7 +310,7 @@ String toTime(double s) {
   } else if (s < 60) {
     return "${c("second")}$sr";
   } else if (s < 3600) {
-    if (s / 60 < 5) {
+    if (s / 60 < 5 && (s % 60).floor() != 0) {
       return "${c("minute")} ${c("second")}$sr";
     }
     return "${c("minute")}$sr";
@@ -325,10 +327,10 @@ String toTime(double s) {
   }
 }
 
-String fancyNum(double num) {
-  var nnn = num.abs().toString();
-  var ndn = num.abs().floor().toString();
-  var o = (num < 0 ? "-" : "") + ndn.split("").reversed.join()
+String fancyNum(num n) {
+  var nnn = n.abs().toString();
+  var ndn = n.abs().floor().toString();
+  var o = (n < 0 ? "-" : "") + ndn.split("").reversed.join()
     .replaceAllMapped(new RegExp(r"..."), (m) => m.group(0) + ",")
     .split("").reversed.join().replaceFirst(new RegExp("^,"), "") + nnn.split("").skipWhile((c) => c != ".").join();
   return o.replaceAll(new RegExp(r"\.0$"), "");
@@ -391,4 +393,13 @@ Future<T> runTimeLimit<T, X>(Future<T> func(X x), X message, int ms) async {
 
   iso.kill();
   return o;
+}
+
+String toHex(List<int> bytes) {
+  var out = new StringBuffer();
+  for (int i = 0; i<bytes.length; i++) {
+    var part = bytes[i];
+    out.write(part.toRadixString(16).padLeft(2, "0"));
+  }
+  return out.toString();
 }

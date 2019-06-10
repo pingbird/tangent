@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:mirrors' as mirrors;
 
 import 'package:tangent/base.dart';
@@ -6,10 +7,13 @@ import 'package:tangent/common.dart';
 import 'package:tangent/modules/commands.dart';
 import 'package:tangent/modules/rpg/data.dart';
 import 'package:tangent/modules/rpg/items.dart';
+import 'package:pointycastle/digests/md5.dart';
 
 import 'package:tangent/modules/rpg/plugins/inventory.dart';
 
-class RpgCommand {}
+class RpgCommand {
+  const RpgCommand();
+}
 
 typedef RpgCommandFn(RpgArgs args);
 
@@ -80,19 +84,42 @@ class RpgModule extends TangentModule implements CmdInit {
       InventoryPlugin,
     ]) {
       var tm = mirrors.reflectClass(t);
-      RpgPlugin inst = tm.newInstance(Symbol(""), []).reflectee;
+      var instMirror = tm.newInstance(Symbol(""), []);
+      RpgPlugin inst = instMirror.reflectee;
+      plugins.add(inst);
 
       for (var decl in tm.declarations.values) {
-        if (decl is mirrors.FunctionTypeMirror) for (var m in decl.metadata) {
+        print("decl ${decl.simpleName}");
+        if (decl is mirrors.MethodMirror) for (var m in decl.metadata) {
+          print("metadata ${m.type.simpleName}");
           if (m.type.isSubclassOf(mirrors.reflectClass(RpgCommand))) {
-            RpgCommandFn fn = decl.getField(decl.simpleName).reflectee;
-            mod.commands[mirrors.MirrorSystem.getName(decl.simpleName)] = CommandEntry(Command(), (args) async {
+            var name = mirrors.MirrorSystem.getName(decl.simpleName);
+            print("registering ${name}");
+            RpgCommandFn fn = instMirror.getField(decl.simpleName).reflectee;
+            mod.commands[name] = CommandEntry(Command(), (args) async {
+              args.res.doPing = true;
               var id = args.msg.m.author.id.toInt();
               if (!db.players.m.containsKey(id)) {
                 return "You are not registered, use the start command";
               }
+
               var player = db.players.m[id];
-              return fn(RpgArgs(player, args));
+
+              if (!player.isBanned()) {
+                player.applySpam(toHex(MD5Digest().process(Utf8Codec().encode(args.text.trim()))));
+
+                if (player.isBanned()) {
+                  var banTime = player.ban - new DateTime.now().millisecondsSinceEpoch;
+
+                  var dt = ItemDelta(it)
+                    ..addItem(Item("spam"))
+                    ..apply(player);
+
+                  return "You have been banned ${toTime(banTime + 0.0)} for spamming ( ${dt} )";
+                }
+
+                return fn(RpgArgs(player, args));
+              }
             });
           }
         }
@@ -120,6 +147,10 @@ class RpgModule extends TangentModule implements CmdInit {
 
     newPlayer.save();
 
-    return "Profile created!";
+    var dt = ItemDelta(it)
+      ..addItem(Item("soul"))
+      ..apply(newPlayer);
+
+    return "Profile created ( $dt )";
   }
 }

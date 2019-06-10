@@ -86,7 +86,7 @@ class QFile extends BasicStringSink {
     module.serviceSocket.writeln(jsonEncode(["fwrite", id, Base64Codec().encode(event)]));
   }
 
-  Future flush() => module.serviceSocket.flush();
+  Future flush() => module.serviceSocket == null ? Future.value() : module.serviceSocket.flush();
 
   close() async {
     if (!opened.isCompleted) return null;
@@ -377,7 +377,7 @@ class QCtrl {
       return false;
     }
 
-    var pre = ares.messageText;
+    var pre = ares.text;
     ares.writeln("Running...");
     StreamGroup.merge([p.pstdout, p.pstderr]).listen((data) {
       if (pre != null) ares.set(pre);
@@ -466,7 +466,7 @@ class TaskBuilder {
   }
 
   Future done() async {
-    var s = res.messageText;
+    var s = res.text;
     for (var task in _tasks) {
       var t0 = DateTime.now().millisecondsSinceEpoch;
       if (task is _SaveTask) {
@@ -500,7 +500,7 @@ class TaskBuilder {
           return false;
         }
 
-        var pre = res.messageText;
+        var pre = res.text;
         res.writeln("Running...");
         StreamGroup.merge([p.pstdout, p.pstderr]).listen((data) {
           if (pre != null) res.set(pre);
