@@ -31,84 +31,88 @@ typedef void _OnMessageCreate(ds.Message message);
 
 class CommandRes extends BasicStringSink implements StreamSink<List<int>>, StringSink {
   TangentMsg invokeMsg;
-  _OnMessageCreate onCreate;
   bool canPing;
+  _OnMessageCreate _onCreate;
 
-  CommandRes(this.invokeMsg, this.onCreate, this.canPing);
+  CommandRes(this.invokeMsg, this._onCreate, this.canPing);
 
-  Future<CommandRes> replace() async {
+  Future<CommandRes> recycle() async {
     cancel();
-    if (flushing) await lastFlush?.future;
-    return CommandRes(invokeMsg, onCreate, canPing)..message = message;
+    if (_flushing) await lastFlush?.future;
+    return CommandRes(invokeMsg, _onCreate, canPing)..message = message;
   }
 
   var cancelled = Completer<Null>();
   Completer<Null> lastFlush = Completer();
 
   ds.Message message;
-  String messageText = "";
+  String text = "";
 
   void cancel() {
     if (cancelled.isCompleted) return;
     cancelled.complete();
   }
 
-  bool flushing = false;
-  bool dirty = false;
-  bool deleted = false;
+  bool doPing = false;
 
-  int lastMessage;
-  int throttle = 100;
+  bool _flushing = false;
+  bool _dirty = false;
+  bool _deleted = false;
+
+  int _lastMessage;
+  int _throttle = 100;
 
   String get dbgId => invokeMsg.m.id.toString().substring(0, 5);
 
   Future flush() async {
-    if (!cancelled.isCompleted) dirty = true;
-    if (flushing) return;
-    flushing = true;
+    if (!cancelled.isCompleted) _dirty = true;
+    if (_flushing) return;
+    _flushing = true;
 
-    while (dirty && !deleted) {
+    while (_dirty && !_deleted) {
       var time = DateTime.now().millisecondsSinceEpoch;
 
-      if (throttle != 0) {
-        if (lastMessage != null)
-          throttle = max(0, throttle - (time - lastMessage));
-        if (throttle != 0) await Future.delayed(
-            Duration(milliseconds: throttle));
+      if (_throttle != 0) {
+        if (_lastMessage != null)
+          _throttle = max(0, _throttle - (time - _lastMessage));
+        if (_throttle != 0) await Future.delayed(
+            Duration(milliseconds: _throttle));
       }
 
-      if (messageText.length > 2000) {
-        messageText = messageText.substring(
-            messageText.length - 2000, messageText.length);
+      var prefix = doPing ? "<@${invokeMsg.m.author.id.id}> " : "";
+      var mlimit = 2000 - prefix.length;
+
+      if (text.length > mlimit) {
+        text = text.substring(text.length - mlimit, text.length);
       }
 
-      dirty = false;
-      if (messageText.trim() != "" && !deleted) {
+      _dirty = false;
+      if (text.trim() != "" && !_deleted) {
         if (message == null) {
           bool containsPing = false;
           if (!canPing) {
-            containsPing = messageText.contains(RegExp(r'<@(\d+)>'));
+            containsPing = text.contains(RegExp(r'<@(\d+)>'));
           }
 
           if (containsPing) {
             message = await invokeMsg.reply(Utf8Codec().decode([226, 128, 139]));
-            await message.edit(content: messageText);
+            await message.edit(content: prefix + text);
           } else {
-            message = await invokeMsg.reply(messageText);
+            message = await invokeMsg.reply(prefix + text);
           }
 
 
-          onCreate(message);
+          _onCreate(message);
         } else {
-          await message.edit(content: messageText);
+          await message.edit(content: prefix + text);
         }
       }
 
-      lastMessage = DateTime.now().millisecondsSinceEpoch;
-      throttle = min(5000, throttle + 1000);
+      _lastMessage = DateTime.now().millisecondsSinceEpoch;
+      _throttle = min(5000, _throttle + 1000);
     }
 
-    flushing = false;
+    _flushing = false;
     lastFlush.complete();
     lastFlush = Completer();
   }
@@ -118,12 +122,12 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
   }
 
   void set(String msg) async {
-    messageText = msg;
+    text = msg;
     await queue();
   }
 
   void add(List<int> event) async {
-    messageText += Utf8Codec().decode(event, allowMalformed: true);
+    text += Utf8Codec().decode(event, allowMalformed: true);
     await queue();
   }
 
@@ -294,7 +298,7 @@ class CommandsModule extends TangentModule {
     if (userResponses.containsKey(msg.m.author.id)) {
       var res = userResponses[msg.m.author.id];
       if (msg.m.id != res.invokeMsg.m.id) return;
-      await invokeMsg(msg, res: await res.replace());
+      await invokeMsg(msg, res: await res.recycle());
     }
   }
 
@@ -314,7 +318,7 @@ class CommandsModule extends TangentModule {
         userResponses.remove(msg.m?.author?.id);
         if (res.message != null) {
           responses.remove(res.message.id);
-          res.deleted = true;
+          res._deleted = true;
           await res.message.delete();
         }
       }
