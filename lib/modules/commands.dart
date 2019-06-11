@@ -53,6 +53,15 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
     cancelled.complete();
   }
 
+  void addEmbed(ds.EmbedBuilder embed) {
+    embedDirty = true;
+    this.embed = embed;
+    queue();
+  }
+
+  bool embedDirty = false;
+  ds.EmbedBuilder embed;
+
   bool doPing = false;
 
   bool _flushing = false;
@@ -87,7 +96,7 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
       }
 
       _dirty = false;
-      if (text.trim() != "" && !_deleted) {
+      if ((text.trim() != "" || embedDirty) && !_deleted) {
         if (message == null) {
           bool containsPing = false;
           if (!canPing) {
@@ -95,16 +104,16 @@ class CommandRes extends BasicStringSink implements StreamSink<List<int>>, Strin
           }
 
           if (containsPing) {
-            message = await invokeMsg.reply(Utf8Codec().decode([226, 128, 139]));
+            message = await invokeMsg.reply(Utf8Codec().decode([226, 128, 139]), embed: embed);
             await message.edit(content: prefix + text);
           } else {
-            message = await invokeMsg.reply(prefix + text);
+            message = await invokeMsg.reply(prefix + text, embed: embed);
           }
 
 
           _onCreate(message);
         } else {
-          await message.edit(content: prefix + text);
+          await message.edit(content: prefix + text, embed: embed);
         }
       }
 
@@ -292,7 +301,9 @@ class CommandsModule extends TangentModule {
     }
   }
 
-  @override onMessage(TangentMsg msg) => invokeMsg(msg);
+  @override onMessage(TangentMsg msg) {
+    invokeMsg(msg);
+  }
 
   @override onMessageUpdate(TangentMsg oldMsg, TangentMsg msg) async {
     if (userResponses.containsKey(msg.m.author.id)) {
