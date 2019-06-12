@@ -107,6 +107,12 @@ class RpgDB {
   int count;
   Map<String, String> meta;
 
+  Item copy({String id, int count, Map<String, String> meta}) => Item(
+    id ?? this.id,
+    count ?? this.count,
+    meta ?? this.meta,
+  );
+
   factory Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);
   Map<String, dynamic> toJson() => _$ItemToJson(this);
 }
@@ -152,7 +158,7 @@ class RpgDB {
     if (ban != null && new DateTime.now().millisecondsSinceEpoch >= ban) ban = null;
     lastMsgTime ??= new DateTime.now().millisecondsSinceEpoch - 100000;
     spam ??= 0.0;
-    spam = max(0.0, (spam - ((new DateTime.now().millisecondsSinceEpoch - lastMsgTime) / 1000)) + (lastMsgText == text ? 2 : 1));
+    spam = max(0.0, (spam - ((new DateTime.now().millisecondsSinceEpoch - lastMsgTime) / 1000)) + (lastMsgText == text ? 2.5 : 1.5));
     lastMsgText = text;
     if (spam > 2.5) {
       ban = new DateTime.now().millisecondsSinceEpoch + 120000;

@@ -439,3 +439,9 @@ int levenshtein(String s, String t, {bool caseSensitive: true}) {
 
   return v1[t.length];
 }
+
+Map<K, V> mapFromIterable<T, K, V>(List<T> list, {K key(T element), V value(T element)}) =>
+  Map<K, V>.fromIterable(list,
+    key: key == null ? null : (e) => key(e as T),
+    value: value == null ? null : (e) => value(e as T),
+  );

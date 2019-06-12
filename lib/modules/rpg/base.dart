@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:mirrors' as mirrors;
 
+import 'package:nyxx/nyxx.dart' as ds;
+
 import 'package:tangent/base.dart';
 import 'package:tangent/common.dart';
 import 'package:tangent/modules/commands.dart';
@@ -26,13 +28,17 @@ abstract class RpgPlugin {
 class RpgArgs {
   RpgArgs(this.player, this.cmdArgs) {
     res = cmdArgs.res;
-    list = ArgParse(cmdArgs.text, parseFlags: false).list;
+    text = cmdArgs.text;
+    msg = cmdArgs.msg;
+    list = ArgParse(text, parseFlags: false).list;
   }
 
   Player player;
   CommandArgs cmdArgs;
   List<String> list;
+  String text;
   int idx;
+  TangentMsg msg;
   CommandRes res;
 
   int getInt() {
@@ -65,11 +71,92 @@ class RpgArgs {
 
 typedef RpgCmdCallback(RpgArgs args);
 
+const rpgGuild = "368249740120424449";
+
 class RpgModule extends TangentModule implements CmdInit {
   var db = RpgDB();
   var it = ItemContext();
+  var re = RecipeRegistry();
 
   var plugins = Set<RpgPlugin>();
+
+  T findQuery<T>(String query, List<T> items, String itemString(T e)) {
+    int lowestDist;
+    T out;
+
+    int bestScore;
+    T scoreOut;
+
+    for (var i in items) {
+      var v = itemString(i);
+
+      var dist = levenshtein(v, query, caseSensitive: false);
+
+      if (lowestDist == null || dist < lowestDist) {
+        lowestDist = dist;
+        out = i;
+      }
+
+      var a = v.split("").toList();
+      var b = query.split("").toList();
+      var offset = 0;
+
+      while (a.isNotEmpty && b.isNotEmpty && a.first.toLowerCase() != b.first.toLowerCase()) {
+        offset++;
+        a.removeAt(0);
+      }
+
+      var len = 0;
+
+      while (a.isNotEmpty && b.isNotEmpty && a.first.toLowerCase() == b.first.toLowerCase()) {
+        len++;
+        a.removeAt(0);
+        b.removeAt(0);
+      }
+
+      var score = ((offset / 4) + (10 / (len + 1))).floor();
+
+      if (scoreOut == null || score < bestScore) {
+        bestScore = score;
+        scoreOut = i;
+      }
+    }
+
+    if (scoreOut != null && bestScore < lowestDist) return scoreOut;
+    if (out != null && lowestDist < 10) return out;
+
+    return null;
+  }
+
+  Player findPlayer(String query) {
+    var find = <int>[];
+
+    var members = tangent.nyxx.guilds[ds.Snowflake(rpgGuild)].members;
+
+    for (var member in members.values) {
+      var id = member.id.toInt();
+      if (!db.players.m.containsKey(id)) continue;
+
+      if (
+        query == id.toString() ||
+        query == "<@$id>" ||
+        query == "${member.username}#${member.discriminator}"
+      ) return db.players.m[id];
+
+      find.add(id);
+    }
+
+    var id = findQuery(query, find, (e) {
+      var m = members[ds.Snowflake(e)];
+      return m.nickname ?? m.username;
+    });
+
+    if (id == null) return null;
+    return db.players.m[id];
+  }
+
+  Item findItem(String query, List<Item> items) =>
+    findQuery(query, items, (e) => it.get(e).name);
 
   @override init() async {
     await db.load();
@@ -89,12 +176,9 @@ class RpgModule extends TangentModule implements CmdInit {
       plugins.add(inst);
 
       for (var decl in tm.declarations.values) {
-        print("decl ${decl.simpleName}");
         if (decl is mirrors.MethodMirror) for (var m in decl.metadata) {
-          print("metadata ${m.type.simpleName}");
           if (m.type.isSubclassOf(mirrors.reflectClass(RpgCommand))) {
             var name = mirrors.MirrorSystem.getName(decl.simpleName);
-            print("registering ${name}");
             RpgCommandFn fn = instMirror.getField(decl.simpleName).reflectee;
             mod.commands[name] = CommandEntry(Command(), (args) async {
               args.res.doPing = true;

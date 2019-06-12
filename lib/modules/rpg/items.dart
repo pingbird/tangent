@@ -1,9 +1,12 @@
+import 'dart:math';
+
 import 'package:tangent/modules/rpg/data.dart';
 import 'package:tangent/modules/rpg/base.dart';
 import 'package:tangent/common.dart';
+import 'package:tuple/tuple.dart';
 
-typedef ItemDesc ItemDescGetter(Item item, {int count});
-typedef String _ToString();
+typedef ItemDesc ItemDescGen(Item item, {int count});
+typedef String _ToString({bool amount});
 typedef bool _Merger(Item a, Item b);
 
 class ItemDesc {
@@ -17,13 +20,13 @@ class ItemDesc {
   _ToString print;
   _Merger merger;
   bool stacks = true;
-  toString() => print();
+  toString({bool amount = true}) => print(amount: amount);
 }
 
 class ItemContext {
-  Map<String, ItemDescGetter> descs = {};
+  Map<String, ItemDescGen> descs = {};
 
-  void registerGetter(String id, ItemDescGetter getter) {
+  void registerGetter(String id, ItemDescGen getter) {
     descs[id] = getter;
   }
 
@@ -41,13 +44,19 @@ class ItemContext {
         category: category,
         stacks: stacks,
         verbose: verbose,
-        print: print ?? () {
+        print: print ?? ({bool amount}) {
           var emj = emoji == null ? "" : " ${
               emoji.startsWith("<") ? emoji : ":$emoji:"
           }";
 
           if (!verbose && emj != "") return "${fancyNum(count)} $emj";
-          return (stacks ? fancyNum(count) + " " + (plural != null && (count > 1 || count < -1) ? plural : name) : name) + emj;
+
+          var nstr = plural != null && (count > 1 || count < -1) ? plural : name;
+          if (!stacks || !amount) {
+            return "$nstr$emj";
+          } else {
+            return "${fancyNum(count)} $nstr$emj";
+          }
         },
         merger: merger ?? (a, b) {
           a.count += b.count;
@@ -70,9 +79,12 @@ class ItemContext {
 
 class ItemDelta {
   ItemContext ctx;
-  ItemDelta(this.ctx);
+  Set<Item> items;
 
-  Set<Item> items = new Set();
+  ItemDelta(this.ctx, {this.items}) {
+    items ??= Set();
+  }
+
   void addItem(Item x) {
     if (x.count == 0) return;
     var xInfo = ctx.get(x);
@@ -112,7 +124,7 @@ class ItemDelta {
     d.items.forEach(addItem);
   }
 
-  void apply(Player e) {
+  bool canApply(Player e) {
     for (var x in items) {
       var xInfo = ctx.get(x);
       if (xInfo.stacks) {
@@ -120,12 +132,15 @@ class ItemDelta {
           var iInfo = ctx.get(i);
           var ni = Item.fromJson(i.toJson());
           if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(ni, x)) {
-            if (ni.count < 0 && ni.count < i.count) throw "Not enough ${iInfo.plural}.";
+            if (ni.count < 0 && ni.count < i.count) return false;
           }
         }
       }
     }
+    return true;
+  }
 
+  void apply(Player e) {
     for (var x in items) {
       var xInfo = ctx.get(x);
       bool added = false;
@@ -146,5 +161,71 @@ class ItemDelta {
     e.save();
   }
 
+  ItemDelta operator-() => ItemDelta(ctx, items: items.map((i) => i.copy(count: -i.count)).toSet());
+
   toString() => items.map((i) => (i.count > 0 ? "+" : "") + ctx.get(i).toString()).join(", ");
+}
+
+class CraftRecipe {
+  CraftRecipe(this.inputs, this.output);
+  Map<String, int> inputs;
+  List<Item> output;
+}
+
+typedef Iterable<Item> ItGen();
+
+ItGen itGenAll(Iterable<ItGen> gens) => () =>
+  gens.map((g) => g()).expand((e) => e);
+
+ItGen itGenDist(Map<ItGen, double> gens) => () {
+  var field = <Tuple2<double, ItGen>>[];
+
+  var total = 0.0;
+  for (var k in gens.keys) {
+    field.add(Tuple2(total, k));
+    total += gens[k];
+  }
+
+  var n = Random().nextDouble() * total;
+  for (int i = 0;; i++) {
+    if (n > field[i].item1) continue;
+    return field[i].item2();
+  }
+};
+
+typedef double ItCurve(double x);
+
+ItCurve expCurve(double e, [double o = 0]) => (double d) => pow(d + o, e);
+
+ItGen itGenSingle(String id, {int start, int end, ItCurve curve, Map<String, String> meta}) => () {
+  start ??= 1;
+  end ??= start;
+  int count;
+
+  if (start == end) {
+    count = start;
+  } else {
+    var n = Random().nextDouble();
+    if (curve != null) n = max(0, min(1, curve(n)));
+    count = ((n * (end - start)) + start).round();
+  }
+
+  return [Item(id, count, meta)];
+};
+
+class CrushRecipe {
+  Item input;
+  ItGen output;
+}
+
+class FarmRecipe {
+  Item input;
+  double growTime;
+  ItGen output;
+}
+
+class RecipeRegistry {
+  Map<String, CraftRecipe> craftRecipes = {};
+  Map<String, CrushRecipe> crushRecipes = {};
+
 }

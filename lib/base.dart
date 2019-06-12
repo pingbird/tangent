@@ -23,20 +23,27 @@ import 'package:tangent/modules/qemu/base.dart';
 import 'package:tangent/modules/rpg/base.dart';
 
 class TangentMsg {
-  TangentMsg(this.id, this.m);
+  TangentMsg(this.id, this.m) {
+    if (m.author is ds.Member) {
+      userName = (m.author as ds.Member).nickname;
+    } else {
+      userName = m.author.username;
+    }
+  }
   ds.Snowflake id;
+  String userName;
   ds.Message m;
   ds.MessageChannel get channel => m.channel;
-  Future<ds.Message> reply(dynamic value) {
+  Future<ds.Message> reply(dynamic value, {ds.EmbedBuilder embed}) {
     var text = "$value";
     if (text.length > 2000) {
       text = text.substring(0, 2000);
     }
 
     if (m.channel is ds.TextChannel) {
-      return m.channel.send(content: text);
+      return m.channel.send(content: text, embed: embed);
     } else {
-      return m.channel.send(content: text);
+      return m.channel.send(content: text, embed: embed);
     }
   }
 }
