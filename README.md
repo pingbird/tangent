@@ -631,3 +631,12 @@ fn main() {
 }
 ```
 </details>
+
+`bc <code>` - GNU Basic Calculator
+<details>
+<summary>Example</summary>
+
+```lua
+print "Hello from BC\n"
+```
+</details>

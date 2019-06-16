@@ -503,4 +503,9 @@ class QEmuModule extends TangentModule {
     .save("tangent.rs")
     .compile("rustc", ["-o", "tangent", "tangent.rs"])
     .run("./tangent").done();
+
+  @Command()
+  bc(CommandArgs args) => TaskBuilder(q, args)
+    .save("tangent.bc")
+    .run("bash", ["-c", "echo \"`cat tangent.bc`\" | bc"]).done();
 }
