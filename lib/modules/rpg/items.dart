@@ -102,7 +102,9 @@ class ItemDelta {
     if (x.count != 0) items.add(x);
   }
 
-  void subtractItem(Item x) {
+  void addItems(Iterable<Item> items) => items.forEach(addItem);
+
+  void removeItem(Item x) {
     if (x.count == 0) return;
     var xInfo = ctx.get(x);
     if (xInfo.stacks) {
@@ -120,24 +122,26 @@ class ItemDelta {
     if (x.count != 0) items.add(new Item(x.id, -x.count, x.meta));
   }
 
-  void addItems(ItemDelta d) {
+  void removeItems(Iterable<Item> items) => items.forEach(removeItem);
+
+  void addItemDt(ItemDelta d) {
     d.items.forEach(addItem);
   }
 
-  bool canApply(Player e) {
+  Tuple2<Item, Item> checkApply(Player e) {
     for (var x in items) {
       var xInfo = ctx.get(x);
       if (xInfo.stacks) {
         for (var i in e.items.where((i) => i.id == x.id)) {
           var iInfo = ctx.get(i);
-          var ni = Item.fromJson(i.toJson());
+          var ni = i.copy();
           if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(ni, x)) {
-            if (ni.count < 0 && ni.count < i.count) return false;
+            if (ni.count < 0 && ni.count < i.count) return Tuple2(i, x);
           }
         }
       }
     }
-    return true;
+    return null;
   }
 
   void apply(Player e) {
@@ -164,12 +168,6 @@ class ItemDelta {
   ItemDelta operator-() => ItemDelta(ctx, items: items.map((i) => i.copy(count: -i.count)).toSet());
 
   toString() => items.map((i) => (i.count > 0 ? "+" : "") + ctx.get(i).toString()).join(", ");
-}
-
-class CraftRecipe {
-  CraftRecipe(this.inputs, this.output);
-  Map<String, int> inputs;
-  List<Item> output;
 }
 
 typedef Iterable<Item> ItGen();
@@ -213,11 +211,6 @@ ItGen itGenSingle(String id, {int start, int end, ItCurve curve, Map<String, Str
   return [Item(id, count, meta)];
 };
 
-class CrushRecipe {
-  Item input;
-  ItGen output;
-}
-
 class FarmRecipe {
   Item input;
   double growTime;
@@ -225,7 +218,6 @@ class FarmRecipe {
 }
 
 class RecipeRegistry {
-  Map<String, CraftRecipe> craftRecipes = {};
-  Map<String, CrushRecipe> crushRecipes = {};
-
+  Map<String, Tuple2<List<Item>, List<Item>>> craftRecipes = {};
+  Map<String, Tuple2<Item, ItGen>> crushRecipes = {};
 }

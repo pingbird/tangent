@@ -12,6 +12,8 @@ import 'package:tangent/modules/rpg/items.dart';
 import 'package:pointycastle/digests/md5.dart';
 
 import 'package:tangent/modules/rpg/plugins/inventory.dart';
+import 'package:tangent/modules/rpg/plugins/craft.dart';
+import 'package:tangent/modules/rpg/plugins/xp.dart';
 
 class RpgCommand {
   const RpgCommand();
@@ -80,7 +82,7 @@ class RpgModule extends TangentModule implements CmdInit {
 
   var plugins = Set<RpgPlugin>();
 
-  T findQuery<T>(String query, List<T> items, String itemString(T e)) {
+  T findQuery<T>(String query, Iterable<T> items, String itemString(T e)) {
     int lowestDist;
     T out;
 
@@ -169,6 +171,8 @@ class RpgModule extends TangentModule implements CmdInit {
   initCmd(CommandsModule mod) async {
     for (var t in [
       InventoryPlugin,
+      CraftPlugin,
+      XPPlugin,
     ]) {
       var tm = mirrors.reflectClass(t);
       var instMirror = tm.newInstance(Symbol(""), []);

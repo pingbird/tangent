@@ -8,13 +8,6 @@ import 'package:tangent/modules/rpg/items.dart';
 import 'package:nyxx/nyxx.dart' as ds;
 
 class InventoryPlugin extends RpgPlugin {
-  init() async {
-    mod.it.register("soul", plural: "souls");
-    mod.it.register("xp", name: "XP");
-    mod.it.register("xp_orb", name: "XP Orb", plural: "XP Orbs");
-    mod.it.register("spam", plural: "spams");
-  }
-
   @RpgCommand() inv(RpgArgs args) {
     return args.player.items.isEmpty ? "Nothing." : args.player.items.map((i) => mod.it.get(i)).join(", ");
   }
@@ -36,9 +29,9 @@ class InventoryPlugin extends RpgPlugin {
       it = it.copy(count: amount);
     }
 
-    var dt = ItemDelta(mod.it)..subtractItem(it);
+    var dt = ItemDelta(mod.it)..removeItem(it);
 
-    if (!dt.canApply(args.player)) {
+    if (dt.checkApply(args.player) != null) {
       var itName = mod.it.get(it).toString(amount: false);
       if (it.count == 1) {
         return "You do not have a $itName";
