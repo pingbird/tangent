@@ -407,7 +407,8 @@ end Hello;
 import std.stdio;
 void main() {
     writeln("Hello from D");
-}```
+}
+```
 </details>
 
 `groovy <code>` - Groovy 2.4.8
