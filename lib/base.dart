@@ -24,10 +24,10 @@ import 'package:tangent/modules/rpg/base.dart';
 
 class TangentMsg {
   TangentMsg(this.id, this.m) {
-    if (m.author is ds.Member) {
+    if (m.author != null && m.author is ds.Member) {
       userName = (m.author as ds.Member).nickname;
     } else {
-      userName = m.author.username;
+      userName = m?.author?.username;
     }
   }
   ds.Snowflake id;

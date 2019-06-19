@@ -61,16 +61,16 @@ class QProc extends BasicStringSink {
 }
 
 Stream<T> dbgStream<T>(Stream<T> stream, String label) => stream.transform(
-    StreamTransformer.fromHandlers(
-      handleDone: (sink) {
-        print("[dbStream] '$label' Done!");
-        sink.close();
-      },
-      handleError: (e, bt, sink) {
-        print("[dbStream] '$label' Error!");
-        sink.addError(e, bt);
-      },
-    )
+  StreamTransformer.fromHandlers(
+    handleDone: (sink) {
+      print("[dbStream] '$label' Done!");
+      sink.close();
+    },
+    handleError: (e, bt, sink) {
+      print("[dbStream] '$label' Error!");
+      sink.addError(e, bt);
+    },
+  )
 );
 
 class QFile extends BasicStringSink {
