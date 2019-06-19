@@ -8,5 +8,11 @@ import 'package:tangent/modules/rpg/items.dart';
 import 'package:nyxx/nyxx.dart' as ds;
 
 class ExchangePlugin extends RpgPlugin {
-  Future updateExchange() {}
+  Future init() {
+
+  }
+
+  Future updateExchange() {
+
+  }
 }

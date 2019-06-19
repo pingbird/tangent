@@ -13,7 +13,8 @@ import 'package:pointycastle/digests/md5.dart';
 
 import 'package:tangent/modules/rpg/plugins/inventory.dart';
 import 'package:tangent/modules/rpg/plugins/craft.dart';
-import 'package:tangent/modules/rpg/plugins/xp.dart';
+import 'package:tangent/modules/rpg/plugins/misc.dart';
+import 'package:tangent/modules/rpg/plugins/exchange.dart';
 
 class RpgCommand {
   const RpgCommand();
@@ -172,7 +173,8 @@ class RpgModule extends TangentModule implements CmdInit {
     for (var t in [
       InventoryPlugin,
       CraftPlugin,
-      XPPlugin,
+      MiscPlugin,
+      ExchangePlugin,
     ]) {
       var tm = mirrors.reflectClass(t);
       var instMirror = tm.newInstance(Symbol(""), []);
