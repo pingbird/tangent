@@ -76,6 +76,28 @@ class RpgTableElm {
   }
 }
 
+@JsonSerializable() class ExchangeData {
+  ExchangeData();
+  int nextUpdate = 0;
+  Map<String, num> rates = {};
+
+  static Future<ExchangeData> load() async {
+    var exf = File("db/rpg/exchange");
+    if (await exf.exists()) {
+      return ExchangeData.fromJson(jsonDecode(await exf.readAsString()));
+    } else {
+      return ExchangeData();
+    }
+  }
+
+  Future save() async {
+    await File("db/rpg/exchange").writeAsString(jsonEncode(toJson()));
+  }
+
+  factory ExchangeData.fromJson(Map<String, dynamic> json) => _$ExchangeDataFromJson(json);
+  Map<String, dynamic> toJson() => _$ExchangeDataToJson(this);
+}
+
 class RpgDB {
   Future load() async {
     await Future.wait([
@@ -84,9 +106,13 @@ class RpgDB {
       await m.load();
       m.saveTask();
     }));
+
+    exchange = await ExchangeData.load();
   }
 
   var players = RpgTable("players", _$PlayerToJson, _$PlayerFromJson);
+
+  ExchangeData exchange;
 
   Future close() async {
     await Future.wait([
@@ -117,6 +143,15 @@ class RpgDB {
   Map<String, dynamic> toJson() => _$ItemToJson(this);
 }
 
+@JsonSerializable() class RefineProgress {
+  RefineProgress();
+  int time;
+  List<Item> items;
+
+  factory RefineProgress.fromJson(Map<String, dynamic> json) => _$RefineProgressFromJson(json);
+  Map<String, dynamic> toJson() => _$RefineProgressToJson(this);
+}
+
 @JsonSerializable() class Player extends RpgTableElm {
   Player();
   int level = 0;
@@ -128,6 +163,9 @@ class RpgDB {
   String lastMsgText;
   double spam;
   int strike = 0;
+  RefineProgress refineProgress;
+
+  int getItemCount(String name) => items.fold(0, (s, e) => e.id != name ? s : s + e.count);
 
   bool getCooldown(String name) {
     cooldowns ??= {};
