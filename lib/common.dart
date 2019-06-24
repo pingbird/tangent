@@ -293,8 +293,6 @@ String toTime(num s) {
   if (s == double.negativeInfinity) return "forever ago";
   if (s == double.nan) return "unknown";
 
-  s /= 1000;
-
   var sr = "";
   if (s < 0) {
     sr = " ago";

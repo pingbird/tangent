@@ -15,6 +15,7 @@ import 'package:tangent/modules/rpg/plugins/inventory.dart';
 import 'package:tangent/modules/rpg/plugins/craft.dart';
 import 'package:tangent/modules/rpg/plugins/misc.dart';
 import 'package:tangent/modules/rpg/plugins/exchange.dart';
+import 'package:tangent/modules/rpg/plugins/mining.dart';
 
 class RpgCommand {
   const RpgCommand();
@@ -162,7 +163,6 @@ class RpgModule extends TangentModule implements CmdInit {
     findQuery(query, items, (e) => it.get(e).name);
 
   @override init() async {
-    await db.load();
   }
 
   @override unload() async {
@@ -170,11 +170,13 @@ class RpgModule extends TangentModule implements CmdInit {
   }
 
   initCmd(CommandsModule mod) async {
+    await db.load();
     for (var t in [
       InventoryPlugin,
       CraftPlugin,
       MiscPlugin,
       ExchangePlugin,
+      MiningPlugin,
     ]) {
       var tm = mirrors.reflectClass(t);
       var instMirror = tm.newInstance(Symbol(""), []);
@@ -205,7 +207,7 @@ class RpgModule extends TangentModule implements CmdInit {
                     ..addItem(Item("spam"))
                     ..apply(player);
 
-                  return "You have been banned ${toTime(banTime + 0.0)} for spamming ( ${dt} )";
+                  return "You have been banned ${toTime(banTime / 1000.0)} for spamming ( ${dt} )";
                 }
 
                 return fn(RpgArgs(player, args));
