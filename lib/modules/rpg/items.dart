@@ -85,6 +85,9 @@ class ItemDelta {
     items ??= Set();
   }
 
+  bool get isEmpty => !items.any((i) => i.count != 0);
+  bool get isNotEmpty => items.any((i) => i.count != 0);
+
   void addItem(Item x) {
     if (x.count == 0) return;
     var xInfo = ctx.get(x);
@@ -132,13 +135,16 @@ class ItemDelta {
     for (var x in items) {
       var xInfo = ctx.get(x);
       if (xInfo.stacks) {
-        for (var i in e.items.where((i) => i.id == x.id)) {
+        var ql = e.items.where((i) => i.id == x.id);
+        for (var i in ql) {
           var iInfo = ctx.get(i);
           var ni = i.copy();
           if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(ni, x)) {
             if (ni.count < 0 && ni.count < i.count) return Tuple2(i, x);
+            break;
           }
         }
+        if (x.count < 0) return Tuple2(Item(x.id), x);
       }
     }
     return null;
@@ -180,8 +186,8 @@ ItGen itGenDist(Map<ItGen, double> gens) => () {
 
   var total = 0.0;
   for (var k in gens.keys) {
-    field.add(Tuple2(total, k));
     total += gens[k];
+    field.add(Tuple2(total, k));
   }
 
   var n = Random().nextDouble() * total;
@@ -194,6 +200,7 @@ ItGen itGenDist(Map<ItGen, double> gens) => () {
 typedef double ItCurve(double x);
 
 ItCurve expCurve(double e, [double o = 0]) => (double d) => pow(d + o, e);
+ItCurve invExpCurve(double e, [double o = 0]) => (double d) => pow(d + o, (1 - e));
 
 ItGen itGenSingle(String id, {int start, int end, ItCurve curve, Map<String, String> meta}) => () {
   start ??= 1;
@@ -217,7 +224,31 @@ class FarmRecipe {
   ItGen output;
 }
 
+class RefineRecipe {
+  double minTime;
+  double maxTime;
+  ItGen output;
+}
+
 class RecipeRegistry {
-  Map<String, Tuple2<List<Item>, List<Item>>> craftRecipes = {};
-  Map<String, Tuple2<Item, ItGen>> crushRecipes = {};
+  Map<String, Tuple2<List<Item>, List<Item>>> craft = {};
+  Map<String, Tuple2<Item, ItGen>> crush = {};
+  Map<String, RefineRecipe> refine = {};
+}
+
+T takeRandom<T>(Iterable<T> l) => l.elementAt(Random().nextInt(l.length));
+T takeWeighted<T>(Map<T, double> m) {
+  var field = <Tuple2<double, T>>[];
+
+  var total = 0.0;
+  for (var k in m.keys) {
+    total += m[k];
+    field.add(Tuple2(total, k));
+  }
+
+  var n = Random().nextDouble() * total;
+  for (int i = 0;; i++) {
+    if (n > field[i].item1) continue;
+    return field[i].item2;
+  }
 }
