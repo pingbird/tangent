@@ -51,12 +51,12 @@ class TangentMsg {
 abstract class TangentModule {
   TangentInstance tangent;
   bool loaded = true;
-  Future init() {}
+  Future init() async {}
   void onMessage(TangentMsg msg) {}
   void onMessageUpdate(TangentMsg oldMsg, TangentMsg newMsg) {}
   void onMessageDelete(TangentMsg msg) {}
   void onReady() {}
-  Future unload() {}
+  Future unload() async {}
 }
 
 class TangentInstance {
@@ -82,7 +82,7 @@ class TangentInstance {
         Socket sk;
         try {
           sk = await Socket.connect(uri.host, uri.port);
-        } on SocketException catch (e) { // Server is down
+        } on SocketException { // Server is down
           var rserver = await Process.start("redis-server", [
             "--daemonize", "yes",
             "--bind", "127.0.0.1",

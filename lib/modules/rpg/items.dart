@@ -5,7 +5,7 @@ import 'package:tangent/modules/rpg/base.dart';
 import 'package:tangent/common.dart';
 import 'package:tuple/tuple.dart';
 
-typedef ItemDesc ItemDescGen(Item item, {int count});
+typedef ItemDesc ItemDescGen(Item item, {BigInt count});
 typedef String _ToString({bool amount});
 typedef bool _Merger(Item a, Item b);
 
@@ -32,7 +32,7 @@ class ItemContext {
 
   void register(String id, {String name, String plural, String emoji, bool stacks, String stacksWith, String category, bool verbose, _ToString print, _Merger merger}) {
     name ??= id;
-    descs[id] = (Item item, {int count}) {
+    descs[id] = (Item item, {BigInt count}) {
       count ??= item.count;
       stacks ??= true;
       verbose ??= false;
@@ -49,13 +49,13 @@ class ItemContext {
               emoji.startsWith("<") ? emoji : ":$emoji:"
           }";
 
-          if (!verbose && emj != "") return "${fancyNum(count)} $emj";
+          if (!verbose && emj != "") return "${fancyBig(count)} $emj";
 
-          var nstr = plural != null && (count > 1 || count < -1) ? plural : name;
+          var nstr = plural != null && (count > BigInt.one || count < -BigInt.one) ? plural : name;
           if (!stacks || !amount) {
             return "$nstr$emj";
           } else {
-            return "${fancyNum(count)} $nstr$emj";
+            return "${fancyBig(count)} $nstr$emj";
           }
         },
         merger: merger ?? (a, b) {
@@ -66,7 +66,7 @@ class ItemContext {
     };
   }
 
-  ItemDesc get(Item i, {int count}) {
+  ItemDesc get(Item i, {BigInt count}) {
     if (!descs.containsKey(i.id)) register(
       i.id,
       name: "\\_${i.id}\\_",
@@ -85,44 +85,44 @@ class ItemDelta {
     items ??= Set();
   }
 
-  bool get isEmpty => !items.any((i) => i.count != 0);
-  bool get isNotEmpty => items.any((i) => i.count != 0);
+  bool get isEmpty => !items.any((i) => i.count != BigInt.zero);
+  bool get isNotEmpty => items.any((i) => i.count != BigInt.zero);
 
   void addItem(Item x) {
-    if (x.count == 0) return;
+    if (x.count == BigInt.zero) return;
     var xInfo = ctx.get(x);
     if (xInfo.stacks) {
       for (var i in items.where((i) => i.id == x.id)) {
         var iInfo = ctx.get(i);
         if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(i, x)) {
-          if (i.count == 0) {
+          if (i.count == BigInt.zero) {
             items.remove(i);
           }
           return;
         }
       }
     }
-    if (x.count != 0) items.add(x);
+    if (x.count != BigInt.zero) items.add(x);
   }
 
   void addItems(Iterable<Item> items) => items.forEach(addItem);
 
   void removeItem(Item x) {
-    if (x.count == 0) return;
+    if (x.count == BigInt.zero) return;
     var xInfo = ctx.get(x);
     if (xInfo.stacks) {
       for (var i in items.where((i) => i.id == x.id)) {
         var iInfo = ctx.get(i);
         if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith) {
           i.count -= x.count;
-          if (i.count == 0) {
+          if (i.count == BigInt.zero) {
             items.remove(i);
           }
           return;
         }
       }
     }
-    if (x.count != 0) items.add(new Item(x.id, -x.count, x.meta));
+    if (x.count != BigInt.zero) items.add(new Item(x.id, -x.count, x.meta));
   }
 
   void removeItems(Iterable<Item> items) => items.forEach(removeItem);
@@ -140,11 +140,11 @@ class ItemDelta {
           var iInfo = ctx.get(i);
           var ni = i.copy();
           if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(ni, x)) {
-            if (ni.count < 0 && ni.count < i.count) return Tuple2(i, x);
+            if (ni.count < BigInt.zero && ni.count < i.count) return Tuple2(i, x);
             break;
           }
         }
-        if (x.count < 0) return Tuple2(Item(x.id), x);
+        if (x.count < BigInt.zero) return Tuple2(Item.int(x.id), x);
       }
     }
     return null;
@@ -158,7 +158,7 @@ class ItemDelta {
         for (var i in e.items.where((i) => i.id == x.id)) {
           var iInfo = ctx.get(i);
           if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(i, x)) {
-            if (i.count == 0) {
+            if (i.count == BigInt.zero) {
               e.items.remove(i);
             }
             added = true;
@@ -173,7 +173,7 @@ class ItemDelta {
 
   ItemDelta operator-() => ItemDelta(ctx, items: items.map((i) => i.copy(count: -i.count)).toSet());
 
-  toString() => items.map((i) => (i.count > 0 ? "+" : "") + ctx.get(i).toString()).join(", ");
+  toString() => items.map((i) => (i.count > BigInt.zero ? "+" : "") + ctx.get(i).toString()).join(", ");
 }
 
 typedef Iterable<Item> ItGen();
@@ -215,7 +215,7 @@ ItGen itGenSingle(String id, {int start, int end, ItCurve curve, Map<String, Str
     count = ((n * (end - start)) + start).round();
   }
 
-  return [Item(id, count, meta)];
+  return [Item.int(id, count, meta)];
 };
 
 class FarmRecipe {

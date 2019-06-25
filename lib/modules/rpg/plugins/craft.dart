@@ -23,7 +23,7 @@ class CraftPlugin extends RpgPlugin {
 
     if (li != null) {
       var lin = mod.it.get(li.item2);
-      if (li.item2.count == 1) return "You are missing a ${lin.toString(amount: false)} ( ${li.item1.count} / ${-li.item2.count} )";
+      if (li.item2.count == BigInt.one) return "You are missing a ${lin.toString(amount: false)} ( ${li.item1.count} / ${-li.item2.count} )";
       return "You are missing ${lin.toString(amount: false)} ( ${li.item1.count} / ${-li.item2.count} )";
     }
 
@@ -43,7 +43,7 @@ class CraftPlugin extends RpgPlugin {
 
     if (li != null) {
       var lin = mod.it.get(li.item2);
-      if (li.item2.count == 1) return "You are missing a ${lin.toString(amount: false)} ( ${li.item1.count} / ${-li.item2.count} )";
+      if (li.item2.count == BigInt.one) return "You are missing a ${lin.toString(amount: false)} ( ${li.item1.count} / ${-li.item2.count} )";
       return "You are missing ${lin.toString(amount: false)} ( ${li.item1.count} / ${-li.item2.count} )";
     }
 

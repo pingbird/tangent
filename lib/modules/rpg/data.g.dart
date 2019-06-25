@@ -10,7 +10,7 @@ ExchangeData _$ExchangeDataFromJson(Map<String, dynamic> json) {
   return ExchangeData()
     ..nextUpdate = json['nextUpdate'] as int
     ..rates = (json['rates'] as Map<String, dynamic>)?.map(
-      (k, e) => MapEntry(k, (e as num)?.toDouble()),
+      (k, e) => MapEntry(k, e as num),
     );
 }
 
@@ -23,7 +23,7 @@ Map<String, dynamic> _$ExchangeDataToJson(ExchangeData instance) =>
 Item _$ItemFromJson(Map<String, dynamic> json) {
   return Item(
       json['id'] as String,
-      json['count'] as int,
+      json['count'] == null ? null : BigInt.parse(json['count'] as String),
       (json['meta'] as Map<String, dynamic>)?.map(
         (k, e) => MapEntry(k, e as String),
       ));
@@ -31,7 +31,7 @@ Item _$ItemFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$ItemToJson(Item instance) => <String, dynamic>{
       'id': instance.id,
-      'count': instance.count,
+      'count': instance.count?.toString(),
       'meta': instance.meta
     };
 

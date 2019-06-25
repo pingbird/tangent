@@ -48,6 +48,9 @@ class ExchangePlugin extends RpgPlugin {
     }
   }
 
+  BigInt convertBig(BigInt value, String from, String to) =>
+    (value * BigInt.from(100000 * mod.db.exchange.rates[to] / mod.db.exchange.rates[from])) ~/ BigInt.from(100000);
+
   double convert(double value, String from, String to) =>
     value * (mod.db.exchange.rates[to] / mod.db.exchange.rates[from]);
 
@@ -66,36 +69,53 @@ class ExchangePlugin extends RpgPlugin {
   };
 
   @RpgCommand() rates(RpgArgs args) {
-    return "\n" + [
+    return ["",
       "1 :yen: Yen = ${convert(1, "JPY", "USD").toStringAsFixed(2)} :dollar: Dollars",
       "1 :euro: Euro = ${convert(1, "EUR", "USD").toStringAsFixed(2)} :dollar: Dollars",
       "1 :pound: Pound = ${convert(1, "GBP", "USD").toStringAsFixed(2)} :dollar: Dollars",
     ].join("\n");
   }
 
-  String queryCurrencyName(String query) => mod.findQuery(query, [
+  String queryCurrencyName(String query) => mod.findQuery<MapEntry<String, String>>(query, [
     ...currencies.entries,
     ...currencies.entries.map((e) => MapEntry(e.key, e.key)),
-  ], (e) => e.item2)?.key;
+  ], (e) => e.value)?.key;
 
-  @RpgCommand() listen(RpgArgs args) {
+  @RpgCommand() exchange(RpgArgs args) {
     const usage = "Usage: exchange <amount> <from> <to>";
     if (args.list.length != 3) return usage;
     var fromAc = queryCurrencyName(args.list[1]);
     var toAc = queryCurrencyName(args.list[2]);
     if (fromAc == null) return "Unknown currency: $fromAc";
     if (toAc == null) return "Unknown currency: $toAc";
+    if (fromAc == toAc) return "Currencies cannot be the same.";
 
     var stored = args.player.getItemCount(currencies[fromAc]);
-    if (stored == 0) return "You do not have any ${mod.it.get(Item(currencies[fromAc], 2)).toString(amount: false)}.";
+    if (stored == BigInt.zero) return "You do not have any ${mod.it.get(Item.int(currencies[fromAc], 2)).toString(amount: false)}.";
 
-    int amt;
+    BigInt amt;
     if (args.list[0] == "*" || args.list[0] == "all") {
       amt = stored;
     } else {
-      amt = int.tryParse(args.list[0]);
+      amt = BigInt.tryParse(args.list[0]);
     }
 
-    if (amt == null || amt < 1) return "Amount must be an integer greater than zero.";
+    if (amt == null || amt < BigInt.from(1)) return "Amount must be an integer greater than zero.";
+
+    if (amt > stored) return "You do not have enough $fromAc.";
+
+    var toAmt = convertBig(amt, fromAc, toAc);
+
+    if (toAmt <= BigInt.zero) return "Not enough money to exchange.";
+
+    print("fromAc: '$fromAc' toAc: '$toAc' amt: $amt toAmt: $amt stored: $stored");
+
+    var dt = ItemDelta(mod.it)
+      ..removeItem(Item(currencies[fromAc], amt))
+      ..addItem(Item(currencies[toAc], toAmt));
+
+    dt.apply(args.player);
+
+    return "Exchanged ( $dt )";
   }
 }

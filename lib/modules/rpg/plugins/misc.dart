@@ -25,17 +25,17 @@ class MiscPlugin extends RpgPlugin {
 
     mod.it.register("lint");
 
-    mod.re.craft["XP Orb"] = Tuple2([Item("xp", 50)], [Item("xporb")]);
-    mod.re.crush["XP Orb"] = Tuple2(Item("xporb"), itGenSingle("xp", start: 50));
+    mod.re.craft["XP Orb"] = Tuple2([Item.int("xp", 50)], [Item.int("xporb")]);
+    mod.re.crush["XP Orb"] = Tuple2(Item.int("xporb"), itGenSingle("xp", start: 50));
 
-    mod.re.craft["millisecond"] = Tuple2([Item("second", 1000)], [Item("millisecond", 1)]);
-    mod.re.crush["millisecond"] = Tuple2(Item("millisecond"), itGenSingle("second", start: 1000));
+    mod.re.craft["millisecond"] = Tuple2([Item.int("second", 1000)], [Item.int("millisecond", 1)]);
+    mod.re.crush["millisecond"] = Tuple2(Item.int("millisecond"), itGenSingle("second", start: 1000));
 
-    mod.re.craft["microsecond"] = Tuple2([Item("millisecond", 1000)], [Item("microsecond", 1)]);
-    mod.re.crush["microsecond"] = Tuple2(Item("microsecond"), itGenSingle("milliseconds", start: 1000));
+    mod.re.craft["microsecond"] = Tuple2([Item.int("millisecond", 1000)], [Item.int("microsecond", 1)]);
+    mod.re.crush["microsecond"] = Tuple2(Item.int("microsecond"), itGenSingle("milliseconds", start: 1000));
 
-    mod.re.craft["nanosecond"] = Tuple2([Item("microsecond", 1000)], [Item("nanosecond", 1)]);
-    mod.re.crush["nanosecond"] = Tuple2(Item("nanosecond"), itGenSingle("microsecond", start: 1000));
+    mod.re.craft["nanosecond"] = Tuple2([Item.int("microsecond", 1000)], [Item.int("nanosecond", 1)]);
+    mod.re.crush["nanosecond"] = Tuple2(Item.int("nanosecond"), itGenSingle("microsecond", start: 1000));
   }
 
   @RpgCommand() json(RpgArgs args) {
@@ -48,9 +48,9 @@ class MiscPlugin extends RpgPlugin {
 
       var dt = ItemDelta(mod.it);
       if (cd < 0.001) {
-        dt.addItem(Item("microsecond", 1000 - (cd * 1000000).floor()));
+        dt.addItem(Item.int("microsecond", 1000 - (cd * 1000000).floor()));
       } else if (cd < 1) {
-        dt.addItem(Item("millisecond", 1000 - (cd * 1000).floor()));
+        dt.addItem(Item.int("millisecond", 1000 - (cd * 1000).floor()));
       }
 
       if (dt.isNotEmpty) dt.apply(args.player);

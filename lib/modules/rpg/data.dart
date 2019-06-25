@@ -42,7 +42,7 @@ class RpgTable<T extends RpgTableElm> {
     while (!saveReq.isClosed) {
       try {
         await saveReq.stream.first;
-      } on StateError catch(e) {
+      } on StateError {
         break;
       }
 
@@ -124,16 +124,21 @@ class RpgDB {
 
 @JsonSerializable() class Item {
   Item.nil();
-  Item(this.id, [this.count, this.meta]) {
+  Item.int(this.id, [int count, this.meta]) {
     count ??= 1;
+    this.count = BigInt.from(count);
+    meta ??= {};
+  }
+  Item(this.id, [this.count, this.meta]) {
+    count ??= BigInt.from(1);
     meta ??= {};
   }
 
   String id;
-  int count;
+  BigInt count;
   Map<String, String> meta;
 
-  Item copy({String id, int count, Map<String, String> meta}) => Item(
+  Item copy({String id, BigInt count, Map<String, String> meta}) => Item(
     id ?? this.id,
     count ?? this.count,
     meta ?? this.meta,
@@ -165,7 +170,7 @@ class RpgDB {
   int strike = 0;
   RefineProgress refineProgress;
 
-  int getItemCount(String name) => items.fold(0, (s, e) => e.id != name ? s : s + e.count);
+  BigInt getItemCount(String name) => items.fold(BigInt.from(0), (s, e) => e.id != name ? s : s + e.count);
 
   bool getCooldown(String name) {
     cooldowns ??= {};

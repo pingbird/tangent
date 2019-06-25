@@ -204,7 +204,7 @@ class RpgModule extends TangentModule implements CmdInit {
                   var banTime = player.ban - new DateTime.now().millisecondsSinceEpoch;
 
                   var dt = ItemDelta(it)
-                    ..addItem(Item("spam"))
+                    ..addItem(Item.int("spam"))
                     ..apply(player);
 
                   return "You have been banned ${toTime(banTime / 1000.0)} for spamming ( ${dt} )";
@@ -240,7 +240,7 @@ class RpgModule extends TangentModule implements CmdInit {
     newPlayer.save();
 
     var dt = ItemDelta(it)
-      ..addItem(Item("soul"))
+      ..addItem(Item.int("soul"))
       ..apply(newPlayer);
 
     return "Profile created ( $dt )";

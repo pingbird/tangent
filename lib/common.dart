@@ -326,6 +326,13 @@ String toTime(num s) {
   }
 }
 
+String fancyBig(BigInt n) {
+  var ndn = n.abs().toString();
+  return (n < BigInt.zero ? "-" : "") + ndn.split("").reversed.join()
+    .replaceAllMapped(new RegExp(r"..."), (m) => m.group(0) + ",")
+    .split("").reversed.join().replaceFirst(new RegExp("^,"), "");
+}
+
 String fancyNum(num n) {
   var nnn = n.abs().toString();
   var ndn = n.abs().floor().toString();
@@ -404,7 +411,7 @@ String toHex(List<int> bytes) {
 }
 
 
-int levenshtein(String s, String t, {bool caseSensitive: true}) {
+int levenshtein(String s, String t, {bool caseSensitive = true}) {
   if (!caseSensitive) {
     s = s.toLowerCase();
     t = t.toLowerCase();

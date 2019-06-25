@@ -24,8 +24,8 @@ class InventoryPlugin extends RpgPlugin {
     if (it == null) return "You don't have any of that.";
 
     if (args.list[1] != "*" && args.list[1] != "all") {
-      var amount = int.tryParse(args.list[1]);
-      if (amount == null || amount < 1) return "Amount must be an integer greater than 1";
+      var amount = BigInt.tryParse(args.list[1]);
+      if (amount == null || amount < BigInt.one) return "Amount must be an integer greater than 1";
       it = it.copy(count: amount);
     }
 
@@ -33,7 +33,7 @@ class InventoryPlugin extends RpgPlugin {
 
     if (dt.checkApply(args.player) != null) {
       var itName = mod.it.get(it).toString(amount: false);
-      if (it.count == 1) {
+      if (it.count == BigInt.one) {
         return "You do not have a $itName";
       } else {
         return "You do not have enough $itName";
