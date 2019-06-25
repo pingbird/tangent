@@ -27,7 +27,7 @@ class MiningPlugin extends RpgPlugin {
     mod.it.register("microdiamond", plural: "microemeralds");
 
     mod.re.refine["cobblestone"] = RefineRecipe(30, 80, itGenDist({
-      itGenSingle("dust", end: 10): 1000,
+      itGenSingle("dust", end: 10): 800,
       itGenSingle("coal"): 200,
       itGenSingle("iron"): 100,
       itGenSingle("gold"): 50,

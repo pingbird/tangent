@@ -121,4 +121,26 @@ class MiscPlugin extends RpgPlugin {
 
     args.res.addEmbed(oe);
   }
+
+  @RpgCommand() level(RpgArgs args) {
+    if (args.list.isNotEmpty) {
+      if (args.list[0] == "up") {
+        var reqxp = BigInt.from(pow(1.2, args.player.level) * 10);
+        var ec = args.player.getItemCount("xp");
+        if (ec < reqxp) return "Not enough XP ( $ec / $reqxp )";
+        args.player.level++;
+        var dt = ItemDelta(mod.it)..removeItem(Item("xp", reqxp));
+        dt.apply(args.player);
+        return "Levelled up to level ${args.player.level}! ( $dt )";
+      } else if (args.list[0] == "down") {
+        if (args.player.level == 0) return "You are level 0.";
+        args.player.level--;
+        var reqxp = BigInt.from(pow(1.2, args.player.level) * 10);
+        var dt = ItemDelta(mod.it)..addItem(Item("xp", reqxp));
+        dt.apply(args.player);
+        return "Levelled down to level ${args.player.level} ( $dt )";
+      }
+    }
+    return "You are level ${args.player.level}.";
+  }
 }

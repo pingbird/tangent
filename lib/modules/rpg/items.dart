@@ -146,7 +146,7 @@ class ItemDelta {
             break;
           }
         }
-        if (!found && x.count < BigInt.zero) return Tuple2(Item.int(x.id), x);
+        if (!found && x.count < BigInt.zero) return Tuple2(Item.int(x.id, 0), x);
       }
     }
     return null;
