@@ -32,7 +32,6 @@ class ExchangePlugin extends RpgPlugin {
       try {
         var req = await HttpClient().getUrl(Uri.parse("http://data.fixer.io/api/latest?access_key=$token"));
         var data = await Utf8Codec().decodeStream(await req.close());
-        print("wheee $data");
         mod.db.exchange.rates = (jsonDecode(data)["rates"] as Map).cast<String, num>();
       } catch (e, bt) {
         stderr.writeln("/// Exchange Error ///");

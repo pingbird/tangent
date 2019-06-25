@@ -25,13 +25,13 @@ import 'package:tangent/modules/rpg/base.dart';
 class TangentMsg {
   TangentMsg(this.id, this.m) {
     if (m.author != null && m.author is ds.Member) {
-      userName = (m.author as ds.Member).nickname;
+      authorName = (m.author as ds.Member).nickname;
     } else {
-      userName = m?.author?.username;
+      authorName = m?.author?.username;
     }
   }
   ds.Snowflake id;
-  String userName;
+  String authorName;
   ds.Message m;
   ds.MessageChannel get channel => m.channel;
   Future<ds.Message> reply(dynamic value, {ds.EmbedBuilder embed}) {

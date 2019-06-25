@@ -31,7 +31,9 @@ class InventoryPlugin extends RpgPlugin {
 
     var dt = ItemDelta(mod.it)..removeItem(it);
 
-    if (dt.checkApply(args.player) != null) {
+    var ca = dt.checkApply(args.player);
+
+    if (ca != null) {
       var itName = mod.it.get(it).toString(amount: false);
       if (it.count == BigInt.one) {
         return "You do not have a $itName";
@@ -45,6 +47,7 @@ class InventoryPlugin extends RpgPlugin {
 
     var author = args.res.invokeMsg.m.author;
 
+    args.res.doPing = false;
     args.res.addEmbed(ds.EmbedBuilder()
       ..description = "Sent ${mod.it.get(it)} to <@${toPlayer.id}>"
       ..author = (ds.EmbedAuthorBuilder()

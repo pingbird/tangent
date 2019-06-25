@@ -37,6 +37,7 @@ Map<String, dynamic> _$ItemToJson(Item instance) => <String, dynamic>{
 
 RefineProgress _$RefineProgressFromJson(Map<String, dynamic> json) {
   return RefineProgress()
+    ..name = json['name'] as String
     ..time = json['time'] as int
     ..items = (json['items'] as List)
         ?.map(
@@ -45,7 +46,11 @@ RefineProgress _$RefineProgressFromJson(Map<String, dynamic> json) {
 }
 
 Map<String, dynamic> _$RefineProgressToJson(RefineProgress instance) =>
-    <String, dynamic>{'time': instance.time, 'items': instance.items};
+    <String, dynamic>{
+      'name': instance.name,
+      'time': instance.time,
+      'items': instance.items
+    };
 
 Player _$PlayerFromJson(Map<String, dynamic> json) {
   return Player()

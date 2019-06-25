@@ -135,16 +135,18 @@ class ItemDelta {
     for (var x in items) {
       var xInfo = ctx.get(x);
       if (xInfo.stacks) {
+        bool found = false;
         var ql = e.items.where((i) => i.id == x.id);
         for (var i in ql) {
           var iInfo = ctx.get(i);
           var ni = i.copy();
           if (iInfo.stacks && iInfo.stacksWith == xInfo.stacksWith && xInfo.merger(ni, x)) {
             if (ni.count < BigInt.zero && ni.count < i.count) return Tuple2(i, x);
+            found = true;
             break;
           }
         }
-        if (x.count < BigInt.zero) return Tuple2(Item.int(x.id), x);
+        if (!found && x.count < BigInt.zero) return Tuple2(Item.int(x.id), x);
       }
     }
     return null;
@@ -200,7 +202,7 @@ ItGen itGenDist(Map<ItGen, double> gens) => () {
 typedef double ItCurve(double x);
 
 ItCurve expCurve(double e, [double o = 0]) => (double d) => pow(d + o, e);
-ItCurve invExpCurve(double e, [double o = 0]) => (double d) => pow(d + o, (1 - e));
+ItCurve invExpCurve(double e, [double o = 0]) => (double d) => 1 - pow(d + o, e);
 
 ItGen itGenSingle(String id, {int start, int end, ItCurve curve, Map<String, String> meta}) => () {
   start ??= 1;
@@ -225,6 +227,7 @@ class FarmRecipe {
 }
 
 class RefineRecipe {
+  RefineRecipe(this.minTime, this.maxTime, this.output);
   double minTime;
   double maxTime;
   ItGen output;

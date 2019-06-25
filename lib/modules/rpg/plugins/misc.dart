@@ -81,4 +81,44 @@ class MiscPlugin extends RpgPlugin {
       return "You got some change ( $dt )";
     }
   }
+
+  @RpgCommand() rank(RpgArgs args) {
+    String itName;
+    if (args.list.isEmpty) {
+      itName = "dollar";
+    } else {
+      itName = mod.findQuery(args.text, mod.it.descs.keys, (e) => e);
+      if (itName == null) {
+        return "Could not find item.";
+      }
+    }
+
+    var leaderboard = (mod.db.players.m.values.where((e) => e.getItemCount(itName) != BigInt.zero).toList()
+      ..sort((a, b) => b.getItemCount(itName).compareTo(a.getItemCount(itName)))
+    ).take(10);
+
+    var first = args.msg.m.guild.members[ds.Snowflake(leaderboard.first.id)];
+
+    if (leaderboard.isEmpty) return "Nobody has that item.";
+
+    var itf = mod.it.get(Item(itName));
+    var oe = ds.EmbedBuilder();
+
+    oe.title = "Top ${itf.toString(amount: false)} rankings:";
+    oe.thumbnailUrl = first?.avatarURL();
+
+    int i = 1;
+    for (var p in leaderboard) {
+      var name = "${p.id}";
+      var member = args.msg.m.guild.members[ds.Snowflake(p.id)];
+      if (member != null) name = member.nickname ?? member.username;
+      oe.addField(
+        name: "#${i++} - ${name}",
+        content: "${mod.it.get(Item(itName), count: p.getItemCount(itName))}",
+        inline: true,
+      );
+    }
+
+    args.res.addEmbed(oe);
+  }
 }
