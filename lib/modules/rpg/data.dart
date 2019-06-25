@@ -144,12 +144,15 @@ class RpgDB {
     meta ?? this.meta,
   );
 
+  toString() => "Item($id,$count,$meta)";
+
   factory Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);
   Map<String, dynamic> toJson() => _$ItemToJson(this);
 }
 
 @JsonSerializable() class RefineProgress {
   RefineProgress();
+  String name;
   int time;
   List<Item> items;
 
@@ -203,7 +206,7 @@ class RpgDB {
     spam ??= 0.0;
     spam = max(0.0, (spam - ((new DateTime.now().millisecondsSinceEpoch - lastMsgTime) / 1000)) + (lastMsgText == text ? 2.5 : 1.5));
     lastMsgText = text;
-    if (spam > 2.5) {
+    if (spam > 3) {
       ban = new DateTime.now().millisecondsSinceEpoch + 120000;
       strike = (strike ?? 0) + 1;
     }
