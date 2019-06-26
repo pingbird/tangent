@@ -27,7 +27,11 @@ class InventoryPlugin extends RpgPlugin {
       var amount = BigInt.tryParse(args.list[1]);
       if (amount == null || amount < BigInt.one) return "Amount must be an integer greater than 1";
       it = it.copy(count: amount);
+    } else {
+      it = it.copy();
     }
+
+    print("lmao $it");
 
     var dt = ItemDelta(mod.it)..removeItem(it);
 

@@ -18,6 +18,7 @@ class ExchangePlugin extends RpgPlugin {
     mod.it.register("yen");
     mod.it.register("euro", plural: "euros");
     mod.it.register("pound", plural: "pounds");
+    mod.it.register("robux");
 
     token = (await File("tokens/fixer.txt").readAsString()).trim();
 
@@ -33,6 +34,7 @@ class ExchangePlugin extends RpgPlugin {
         var req = await HttpClient().getUrl(Uri.parse("http://data.fixer.io/api/latest?access_key=$token"));
         var data = await Utf8Codec().decodeStream(await req.close());
         mod.db.exchange.rates = (jsonDecode(data)["rates"] as Map).cast<String, num>();
+        mod.db.exchange.rates["RBX"] = mod.db.exchange.rates["USD"] / 0.012475;
       } catch (e, bt) {
         stderr.writeln("/// Exchange Error ///");
         stderr.writeln(e);
@@ -58,6 +60,7 @@ class ExchangePlugin extends RpgPlugin {
     "EUR": "euro",
     "GBP": "pound",
     "USD": "dollar",
+    "RBX": "robux",
   };
 
   static const currencyCodes = {
@@ -65,13 +68,15 @@ class ExchangePlugin extends RpgPlugin {
     "euro": "EUR",
     "pound": "GBP",
     "dollar": "USD",
+    "robux": "RBX",
   };
 
   @RpgCommand() rates(RpgArgs args) {
-    return ["",
-      "1 :yen: Yen = ${convert(1, "JPY", "USD").toStringAsFixed(2)} :dollar: Dollars",
-      "1 :euro: Euro = ${convert(1, "EUR", "USD").toStringAsFixed(2)} :dollar: Dollars",
-      "1 :pound: Pound = ${convert(1, "GBP", "USD").toStringAsFixed(2)} :dollar: Dollars",
+    return ["1 :dollar: Dollar =",
+      "${convert(1, "USD", "JPY").toStringAsFixed(2)} :yen: Yen",
+      "${convert(1, "USD", "EUR").toStringAsFixed(2)} :euro: Euro",
+      "${convert(1, "USD", "GBP").toStringAsFixed(2)} :pound: Pound",
+      "${convert(1, "USD", "RBX").toStringAsFixed(2)} <:robux:593284641394524180> Robux",
     ].join("\n");
   }
 

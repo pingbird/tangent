@@ -125,7 +125,7 @@ class MiscPlugin extends RpgPlugin {
   @RpgCommand() level(RpgArgs args) {
     if (args.list.isNotEmpty) {
       if (args.list[0] == "up") {
-        var reqxp = BigInt.from(pow(1.2, args.player.level) * 10);
+        var reqxp = BigInt.from(pow(1.05, args.player.level) * 10);
         var ec = args.player.getItemCount("xp");
         if (ec < reqxp) return "Not enough XP ( $ec / $reqxp )";
         args.player.level++;
