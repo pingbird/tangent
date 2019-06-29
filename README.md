@@ -641,3 +641,19 @@ fn main() {
 print "Hello from BC\n"
 ```
 </details>
+
+`ir <code>` - LLVM IR
+<details>
+<sumamry>Example</summary>
+
+```
+@.str = private unnamed_addr constant [20 x i8] c"Hello from LLVM IR\0A\00"
+
+define i32 @main() #0 {
+  %1 = call i32 @puts(i8* getelementptr inbounds ([20 x i8], [20 x i8]* @.str, i32 0, i32 0))
+  ret i32 0
+}
+
+declare i32 @puts(i8*) #1```
+```
+</details>
