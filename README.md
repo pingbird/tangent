@@ -644,7 +644,7 @@ print "Hello from BC\n"
 
 `ir <code>` - LLVM IR
 <details>
-<sumamry>Example</summary>
+<summary>Example</summary>
 
 ```
 @.str = private unnamed_addr constant [20 x i8] c"Hello from LLVM IR\0A\00"
