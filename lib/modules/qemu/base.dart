@@ -508,4 +508,11 @@ class QEmuModule extends TangentModule {
   bc(CommandArgs args) => TaskBuilder(q, args)
     .save("tangent.bc")
     .run("bash", ["-c", "echo \"`cat tangent.bc`\" | bc"]).done();
+
+  @Command()
+  ir(CommandArgs args) => TaskBuilder(q, args)
+    .save("tangent.ll")
+    .compile("llc-6.0", ["-o", "tangent.S", "tangent.ll"])
+    .compile("gcc", ["-static", "-o", "tangent", "tangent.S"])
+    .run("./tangent").done();
 }
