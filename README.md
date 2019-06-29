@@ -654,6 +654,6 @@ define i32 @main() #0 {
   ret i32 0
 }
 
-declare i32 @puts(i8*) #1```
+declare i32 @puts(i8*) #1
 ```
 </details>
