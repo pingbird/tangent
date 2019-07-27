@@ -20,7 +20,7 @@ class MiscModule extends TangentModule {
     while (count > 0) {
       var n = min(count, 99);
       count -= n;
-      var msgs = await chan.getMessages(before: earliest, limit: n).toList();
+      var msgs = (await chan.getMessages(before: earliest, limit: n)).values.toList();
       print(msgs.length);
       if (count == 0) msgs.add(args.msg.m);
       await chan.bulkRemoveMessages(msgs);
