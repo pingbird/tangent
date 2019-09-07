@@ -157,31 +157,10 @@ int main() {
 </details>
 
 `lua <code>` - Lua 5.3 Reference interpreter
-<details>
-<summary>Example</summary>
-
-```lua
-print("Hello from " .. _VERSION)
-```
-</details>
 
 `lua5.2 <code>` - Lua 5.2 Reference interpreter
-<details>
-<summary>Example</summary>
-
-```lua
-print("Hello from " .. _VERSION)
-```
-</details>
 
 `lua5.1 <code>` - Lua 5.1 Reference interpreter
-<details>
-<summary>Example</summary>
-
-```lua
-print("Hello from " .. _VERSION)
-```
-</details>
 
 `luajit <code>` - LuaJIT 2.0
 <details>
