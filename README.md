@@ -172,14 +172,6 @@ print("Hello from " .. _VERSION)
 </details>
 
 `py <code>` - Python 3
-<details>
-<summary>Example</summary>
-
-```py
-from platform import python_version
-print('Hello from Python {}'.format(python_version()))
-```
-</details>
 
 `py2 <code>` - Python 2
 <details>
