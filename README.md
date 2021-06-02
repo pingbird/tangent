@@ -2,8 +2,6 @@
 
 ### Tangent - A discord bot with access to a full Linux VM
 
-### https://discord.gg/F2F2EdE
-
 ## How it works
 Tangent uses [libvirt](https://libvirt.org/) to manage a qemu controlled Debian 9 virtual machine and communicates to it through a custom json rpc like protocol.
 
